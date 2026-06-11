@@ -114,6 +114,46 @@ and results. Maintained by Claude during autonomous research sessions.
   command line legitimately contains the target string, so pkill again killed
   its own shell (exit 255). Fix: separate ssh invocations for kill and launch.
 
-### Base model run — batched
-- Launched: 111 problems, batch 8 by category, temp 0.6 / top_p 0.95 /
-  seed 42 per batch. Log: /workspace/run_base.log.
+### Base model run — batched (false starts continue)
+
+- ERROR 13: OOM at ~73.9GB during first batch-8 factual batch (~10GB growth
+  over decode). Initially blamed cache growth; actually a symptom of ERROR 15.
+- ERROR 14: `stack expects each tensor to be equal size... [428,6] vs [432,6]`
+  in finalize() — decode gate calls had GROWING row counts (4×107, 4×108...).
+  Diagnosis: generation was re-processing the full sequence every step.
+- ERROR 15 (root cause of 11/13/14 — NVIDIA modeling code bug chain):
+  1. `prepare_inputs_for_generation` returns the cache as "past_key_values"
+     but `forward()` only accepts `cache_params` → cache dropped into
+     **kwargs → silently CACHELESS generation (the L1454 warning).
+  2. Bridging that exposed: `HybridMambaAttentionDynamicCache` lacks
+     `conv_kernel_size` (mixers read it; class never sets it).
+  3. `update_conv_state`/`update_ssm_state` call `.device` on the python
+     LIST `self.conv_states` → AttributeError when cache actually used.
+  4. `torch_forward` L563 also reads `.device` on the raw list.
+  5. generate() round-trips the cache as model_kwargs["cache_params"]
+     (ALL_CACHE_NAMES match) but prepare_inputs only reads its
+     past_key_values arg → fresh empty cache EVERY decode step →
+     `expanded size (4096) vs (6144)` (their cache also allocates conv
+     states with the wrong channel count — intermediate_size instead of
+     conv_dim — masked only because init-replace happens on first use).
+  6. Fused decode kernel rejects their layout: `causal_conv1d_update:
+     weight must have shape (dim, width)` → forced pure-torch mamba path.
+  All patched at runtime in `apply_nemotron_patches()` (capture_routing.py);
+  no model files modified.
+- ERROR 16: generate() validates kwargs by INSPECTING the signature of
+  prepare_inputs_for_generation — a `(*a, **k)` wrapper broke validation
+  ("model_kwargs not used: input_ids") → fixed with functools.wraps.
+- VERIFIED after patches: batch-8 factual ran at **15.9 tok/s aggregate**
+  (vs 2 tok/s), no crash, npz written. 8× speedup.
+- ERROR 17 (open): first batch outputs were DEGENERATE (repetition loops,
+  lost-the-plot rambling; all 8 factual FAIL). Controlled tests:
+  single/uniform-batch/padded-batch short greedy generations are all clean
+  ("Paris" × 12) → cache + padding machinery fine at short lengths.
+  Long-generation test (1024 tok, thinking, sampled, single vs batch 8) was
+  RUNNING when the pod went unreachable (SSH timeout). Hypotheses: bf16 SSM
+  state drift over long decode in the torch path vs. legitimate base-model
+  behavior under these sampling settings. TO RESUME: check
+  /workspace/debug_pad2.log on the pod (tests D & E).
+- INFRA: pod connection lost mid-test (~03:45 pod time). /workspace is a
+  network volume — model cache, scripts, and logs survive restarts; only
+  the SSH port should change.
