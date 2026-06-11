@@ -95,42 +95,26 @@ class GateRecorder:
         self.store = defaultdict(lambda: {"ids": [], "w": []})
         self.handles = []
 
-    def find_gate(self, mixer):
-        cands = []
-        for name, mod in mixer.named_modules():
-            out = getattr(mod, "out_features", None)
-            if out is None and hasattr(mod, "weight") and mod.weight is not None \
-               and mod.weight.dim() == 2:
-                out = mod.weight.shape[0]
-            if out == N_EXPERTS and "expert" not in name:
-                cands.append((name, mod))
-        if not cands:
-            raise RuntimeError(f"no gate candidate in {type(mixer).__name__}; "
-                               "run probe_model.py and use --expert-hooks")
-        # prefer names containing gate/router
-        for nm, md in cands:
-            if any(k in nm.lower() for k in ("gate", "router")):
-                return nm, md
-        return cands[0]
-
     def attach(self, model):
+        # NemotronHTopkRouter (= mixer.gate) forward returns
+        # (topk_indices, topk_weights), each (n_tokens, 6); weights are
+        # sigmoid scores normalized to sum 1 then * routed_scaling_factor=2.5.
+        # (Verified via probe_model.py + modeling_nemotron_h.py L874-918.)
         for idx in MOE_LAYERS:
             mixer = model.backbone.layers[idx].mixer
-            name, gate = self.find_gate(mixer)
+            gate = getattr(mixer, "gate", None)
+            if gate is None or "router" not in type(gate).__name__.lower():
+                raise RuntimeError(f"layer {idx}: expected mixer.gate router, "
+                                   f"got {type(gate).__name__}; rerun probe_model.py")
             self.handles.append(gate.register_forward_hook(self._make_hook(idx)))
-        print(f"gate hooks on {len(self.handles)} MoE layers (gate='{name}')", flush=True)
+        print(f"gate hooks on {len(self.handles)} MoE layers", flush=True)
 
     def _make_hook(self, layer_idx):
         def hook(module, inp, out):
-            o = out[0] if isinstance(out, tuple) else out
-            if not torch.is_tensor(o):
-                return
-            logits = o.detach().float().flatten(0, -2)        # (T, 128)
-            probs = torch.softmax(logits, dim=-1)
-            w, ids = torch.topk(probs, TOP_K, dim=-1)         # (T, K)
+            ids_t, w_t = out                                  # (T, 6) each
             s = self.store[layer_idx]
-            s["ids"].append(ids.cpu().numpy().astype(np.int16))
-            s["w"].append(w.cpu().numpy().astype(np.float16))
+            s["ids"].append(ids_t.detach().cpu().numpy().astype(np.int16))
+            s["w"].append(w_t.detach().float().cpu().numpy().astype(np.float16))
         return hook
 
     def reset(self):
