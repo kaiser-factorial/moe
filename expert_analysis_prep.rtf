@@ -1,0 +1,71 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2867
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 **** HOOK CODE ****\
+\
+import torch\
+from collections import defaultdict\
+\
+# storage: layer_idx -> list of (topk_indices, topk_weights) per forward call\
+routing_log = defaultdict(list)\
+\
+def make_router_hook(layer_idx):\
+    def hook(module, inputs, outputs):\
+        topk_indices, topk_weights = outputs\
+        # detach + cpu so we don't hold gpu memory\
+        routing_log[layer_idx].append(\{\
+            "indices": topk_indices.detach().cpu(),   # (N_tokens, 6)\
+            "weights": topk_weights.detach().cpu(),   # (N_tokens, 6)\
+        \})\
+    return hook\
+\
+# register hooks on every MoE layer's gate\
+hooks = []\
+for layer_idx, block in enumerate(model.backbone.layers):\
+    if block.block_type == "moe":\
+        h = block.mixer.gate.register_forward_hook(make_router_hook(layer_idx))\
+        hooks.append(h)\
+\
+# ... do your inference ...\
+# with torch.no_grad():\
+#     output = model.generate(input_ids, max_new_tokens=512, ...)\
+\
+# cleanup when done\
+for h in hooks:\
+    h.remove()\
+\
+\
+********************************************************************************************\
+**** ANALYSIS ON LOGS ****\
+\
+# aggregate across all 20 MoE layers and all generated tokens\
+# result: (20, 128) = how often each expert was in the top-6 for each layer\
+import numpy as np\
+\
+def utilization_matrix(routing_log, n_layers=20, n_experts=128):\
+    # routing_log[layer_idx] -> list of \{indices: (N, 6), weights: (N, 6)\}\
+    util = np.zeros((n_layers, n_experts))\
+    moe_layer_ids = sorted(routing_log.keys())  # actual layer idxs in the full 52\
+    for local_i, global_i in enumerate(moe_layer_ids):\
+        for step in routing_log[global_i]:\
+            idx = step["indices"].numpy().flatten()  # all expert choices\
+            for e in idx:\
+                util[local_i, e] += 1\
+    return util, moe_layer_ids\
+\
+# weighted version: weight by the router's normalized weight, not just "was it picked"\
+def weighted_utilization(routing_log, n_layers=20, n_experts=128):\
+    util = np.zeros((n_layers, n_experts))\
+    moe_layer_ids = sorted(routing_log.keys())\
+    for local_i, global_i in enumerate(moe_layer_ids):\
+        for step in routing_log[global_i]:\
+            idx = step["indices"].numpy()    # (N, 6)\
+            w = step["weights"].numpy()      # (N, 6)\
+            for token_i in range(idx.shape[0]):\
+                for k in range(idx.shape[1]):\
+                    util[local_i, idx[token_i, k]] += w[token_i, k]\
+    return util, moe_layer_ids}

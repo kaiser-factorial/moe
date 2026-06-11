@@ -1,0 +1,128 @@
+6.1s 1 0.00s - Debugger warning: It seems that frozen modules are being used, which may
+6.1s 2 0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off
+6.1s 3 0.00s - to python to disable frozen modules.
+6.1s 4 0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.
+6.5s 5 0.00s - Debugger warning: It seems that frozen modules are being used, which may
+6.5s 6 0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off
+6.5s 7 0.00s - to python to disable frozen modules.
+6.5s 8 0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.
+8.4s 9 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model.safetensors.index.json
+8.4s 10 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model-00012-of-00013.safetensors
+8.4s 11 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model-00004-of-00013.safetensors
+8.4s 12 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/config.json
+8.4s 13 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model-00010-of-00013.safetensors
+8.4s 14 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/configuration_nemotron_h.py
+8.4s 15 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model-00008-of-00013.safetensors
+8.4s 16 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/README.md
+8.4s 17 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/tokenizer.json
+8.4s 18 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/privacy.md
+8.4s 19 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/notebook.ipynb
+8.4s 20 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/tokenizer_config.json
+8.4s 21 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model-00011-of-00013.safetensors
+8.4s 22 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model-00002-of-00013.safetensors
+8.4s 23 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/accuracy_chart.png
+8.4s 24 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model-00005-of-00013.safetensors
+8.4s 25 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/modeling_nemotron_h.py
+8.4s 26 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model-00003-of-00013.safetensors
+8.4s 27 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/chat_template.jinja
+8.4s 28 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/safety.md
+8.4s 29 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model-00009-of-00013.safetensors
+8.4s 30 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model-00007-of-00013.safetensors
+8.4s 31 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/special_tokens_map.json
+8.4s 32 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.gitattributes
+8.4s 33 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model-00006-of-00013.safetensors
+8.4s 34 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model-00001-of-00013.safetensors
+8.4s 35 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/model-00013-of-00013.safetensors
+8.4s 36 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/bias.md
+8.4s 37 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/nano_v3_reasoning_parser.py
+8.4s 38 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/explainability.md
+8.4s 39 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/generation_config.json
+8.4s 40 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.eval_results/mmlu-pro.yaml
+8.4s 41 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.eval_results/gpqa.yaml
+8.4s 42 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.eval_results/hle.yaml
+8.4s 43 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/.gitignore
+8.4s 44 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/configuration_nemotron_h.py.metadata
+8.4s 45 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/tokenizer.json.metadata
+8.4s 46 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/accuracy_chart.png.metadata
+8.4s 47 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model.safetensors.index.json.metadata
+8.4s 48 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/tokenizer_config.json.metadata
+8.4s 49 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/notebook.ipynb.metadata
+8.4s 50 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model-00010-of-00013.safetensors.metadata
+8.4s 51 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model-00002-of-00013.safetensors.metadata
+8.4s 52 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/nano_v3_reasoning_parser.py.metadata
+8.4s 53 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/config.json.metadata
+8.4s 54 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model-00008-of-00013.safetensors.metadata
+8.4s 55 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model-00007-of-00013.safetensors.metadata
+8.4s 56 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/generation_config.json.metadata
+8.4s 57 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model-00004-of-00013.safetensors.metadata
+8.4s 58 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/privacy.md.metadata
+8.4s 59 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model-00009-of-00013.safetensors.metadata
+8.4s 60 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/modeling_nemotron_h.py.metadata
+8.4s 61 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model-00013-of-00013.safetensors.metadata
+8.4s 62 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/special_tokens_map.json.metadata
+8.4s 63 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/.gitattributes.metadata
+8.4s 64 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/safety.md.metadata
+8.4s 65 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/chat_template.jinja.metadata
+8.4s 66 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model-00005-of-00013.safetensors.metadata
+8.4s 67 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model-00012-of-00013.safetensors.metadata
+8.4s 68 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model-00011-of-00013.safetensors.metadata
+8.4s 69 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model-00006-of-00013.safetensors.metadata
+8.4s 70 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/README.md.metadata
+8.4s 71 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model-00001-of-00013.safetensors.metadata
+8.4s 72 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/model-00003-of-00013.safetensors.metadata
+8.4s 73 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/explainability.md.metadata
+8.4s 74 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/bias.md.metadata
+8.4s 75 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/.eval_results/mmlu-pro.yaml.metadata
+8.4s 76 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/.eval_results/gpqa.yaml.metadata
+8.4s 77 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/.eval_results/hle.yaml.metadata
+8.4s 78 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/.cache/huggingface/download/nemo-evaluator-launcher-configs/local_nvidia_nemotron_3_nano_30b_a3b.yaml.metadata
+8.4s 79 /kaggle/input/models/metric/nemotron-3-nano-30b-a3b-bf16/transformers/default/1/nemo-evaluator-launcher-configs/local_nvidia_nemotron_3_nano_30b_a3b.yaml
+8.4s 80 /kaggle/input/competitions/nvidia-nemotron-model-reasoning-challenge/train.csv
+8.4s 81 /kaggle/input/competitions/nvidia-nemotron-model-reasoning-challenge/test.csv
+79.4s 82 /kaggle/usr/lib/notebooks/ryanholbrook/nvidia_utility_script/torch/compiler/__init__.py:148: FutureWarning: torch._dynamo.allow_in_graph is deprecated and will be removed in a future version. Use torch._dynamo.nonstrict_trace instead.
+79.4s 83 return torch._dynamo.allow_in_graph(fn)
+79.4s 84 
+79.4s 85 /kaggle/usr/lib/notebooks/ryanholbrook/nvidia_utility_script/torch/compiler/__init__.py:148: FutureWarning: torch._dynamo.allow_in_graph is deprecated and will be removed in a future version. Use torch._dynamo.nonstrict_trace instead.
+79.4s 86 return torch._dynamo.allow_in_graph(fn)
+79.9s 87 mamba_ssm shadowed ✓
+80.3s 88 ptxas-blackwell patched ✓
+80.3s 89 
+80.3s 90 CUDA available: True
+80.3s 91 GPU: NVIDIA RTX PRO 6000 Blackwell Server Edition
+80.3s 92 VRAM: 102.0 GB
+81.2s 93 `torch_dtype` is deprecated! Use `dtype` instead!
+81.2s 94 
+81.2s 95 `torch_dtype` is deprecated! Use `dtype` instead!
+525.5s 96 Inference:   0%|          | 0/17 [00:00<?, ?it/s]
+525.9s 97 Inference:   0%|          | 0/17 [00:00<?, ?it/s]NemotronH requires an initialized `NemotronHHybridDynamicCache` to return a cache. None was provided, so no cache will be returned.
+525.9s 98 
+525.9s 99 NemotronH requires an initialized `NemotronHHybridDynamicCache` to return a cache. None was provided, so no cache will be returned.
+699.8s 100 Inference:   6%|▌         | 1/17 [02:54<46:29, 174.31s/it]
+791.0s 101 Inference:   6%|▌         | 1/17 [02:54<46:29, 174.31s/it]Inference:  12%|█▏        | 2/17 [04:25<31:21, 125.46s/it]
+1429.7s 102 Inference:  12%|█▏        | 2/17 [04:25<31:21, 125.46s/it]Inference:  18%|█▊        | 3/17 [15:04<1:23:57, 359.81s/it]
+1646.7s 103 Inference:  18%|█▊        | 3/17 [15:04<1:23:57, 359.81s/it]Inference:  24%|██▎       | 4/17 [18:41<1:05:44, 303.43s/it]
+3396.3s 104 Inference:  24%|██▎       | 4/17 [18:41<1:05:44, 303.43s/it]Inference:  29%|██▉       | 5/17 [47:50<2:44:59, 824.92s/it]
+5141.7s 105 Inference:  29%|██▉       | 5/17 [47:50<2:44:59, 824.92s/it]Inference:  35%|███▌      | 6/17 [1:16:56<3:28:36, 1137.88s/it]
+6888.3s 106 Inference:  35%|███▌      | 6/17 [1:16:56<3:28:36, 1137.88s/it]Inference:  41%|████      | 7/17 [1:46:02<3:42:49, 1336.90s/it]
+7157.9s 107 Inference:  41%|████      | 7/17 [1:46:02<3:42:49, 1336.90s/it]Inference:  47%|████▋     | 8/17 [1:50:32<2:29:34, 997.12s/it]
+8452.0s 108 Inference:  47%|████▋     | 8/17 [1:50:32<2:29:34, 997.12s/it] Inference:  53%|█████▎    | 9/17 [2:12:06<2:25:19, 1089.96s/it]
+10184.7s 109 Inference:  53%|█████▎    | 9/17 [2:12:06<2:25:19, 1089.96s/it]Inference:  59%|█████▉    | 10/17 [2:40:59<2:30:18, 1288.38s/it]
+11934.6s 110 Inference:  59%|█████▉    | 10/17 [2:40:59<2:30:18, 1288.38s/it]Inference:  65%|██████▍   | 11/17 [3:10:09<2:22:57, 1429.63s/it]
+13678.1s 111 Inference:  65%|██████▍   | 11/17 [3:10:09<2:22:57, 1429.63s/it]Inference:  71%|███████   | 12/17 [3:39:12<2:07:05, 1525.12s/it]
+14077.2s 112 Inference:  71%|███████   | 12/17 [3:39:12<2:07:05, 1525.12s/it]Inference:  76%|███████▋  | 13/17 [3:45:51<1:18:55, 1184.00s/it]
+15829.8s 113 Inference:  76%|███████▋  | 13/17 [3:45:51<1:18:55, 1184.00s/it]Inference:  82%|████████▏ | 14/17 [4:15:04<1:07:47, 1355.73s/it]
+17591.1s 114 Inference:  82%|████████▏ | 14/17 [4:15:04<1:07:47, 1355.73s/it]Inference:  88%|████████▊ | 15/17 [4:44:25<49:15, 1477.99s/it]
+18242.0s 115 Inference:  88%|████████▊ | 15/17 [4:44:25<49:15, 1477.99s/it]  Inference:  94%|█████████▍| 16/17 [4:55:16<20:29, 1229.03s/it]
+19987.6s 116 Inference:  94%|█████████▍| 16/17 [4:55:16<20:29, 1229.03s/it]Inference: 100%|██████████| 17/17 [5:24:22<00:00, 1384.38s/it]
+19987.6s 117 Inference: 100%|██████████| 17/17 [5:24:22<00:00, 1384.38s/it]Inference: 100%|██████████| 17/17 [5:24:22<00:00, 1144.83s/it]
+19987.6s 118 Inference: 100%|██████████| 17/17 [5:24:22<00:00, 1144.83s/it]
+19987.6s 119 
+19987.6s 120 
+19992.1s 121 /usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+19992.1s 122 cells[i][c] = re.sub('\\\\\|', '|', cell)
+19992.3s 123 /usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+19992.3s 124 text = re.sub(r'_', '\_', text) # Escape underscores in display text
+19993.3s 125 [NbConvertApp] Converting notebook __notebook__.ipynb to notebook
+19993.4s 126 [NbConvertApp] Writing 61187 bytes to __notebook__.ipynb
+19995.0s 127 [NbConvertApp] Converting notebook __notebook__.ipynb to html
+19995.5s 128 [NbConvertApp] Writing 397847 bytes to __results__.html
