@@ -185,3 +185,25 @@ and results. Maintained by Claude during autonomous research sessions.
   manifests with caching on. NVIDIA's shipped code appears never tested
   with cached generation in transformers.
 - Full Phase 1 run relaunched (batch 8, all patches).
+
+### Phase 1 run — COMPLETE ✅
+
+- 111/111 problems captured (~3.5h wall, 5-16 tok/s depending on category).
+- ERROR 20 (final comedy entry): the auto-analysis watcher hung forever —
+  its own `bash -c` command line contained "capture_routing.py --model",
+  matching its own pgrep poll. The self-match curse claimed its author.
+  Killed; analysis run manually.
+- Accuracy (scored, non-truncated, n=95): 82.3%. computational 24/24,
+  symbolic 15/15, factual 88.9%, reasoning 56.3%. social_ethical scoring
+  void (no boxed-answer suffix for free_text_with_position outputs —
+  extraction mismatch, treated as unscored). 16 truncations.
+- VERIFICATION pass (task 7): selectivity baseline corrected for unequal
+  category mass (symbolic 28% vs creative 5% of tokens) — naive 1/6
+  baseline replaced by per-category normalized masses. Median corrected
+  selectivity 0.32 (~2x uniform), inverted-U over depth (0.23 L1 → 0.37
+  L17-20 → 0.27 L51), 26 expert-layer pairs >0.8 selectivity (e.g. L10-E8
+  100% factual, L17-E63 99% creative). Difficulty effects on entropy: flat
+  (unique/token decline = length artifact, as pre-registered).
+  Concentration-correctness r=0.31 (p=0.005), positive in all difficulty
+  strata (hard: r=0.46, p=0.03) → not a difficulty artifact.
+- Results, discussion, conclusion written into report/phase1_report.md.

@@ -181,48 +181,137 @@ planted effects before touching real data.
 
 ## 4. Results
 
-*Pending Phase 1 run completion.*
+Run summary: 111/111 problems completed; 95 scored, 82.3% correct after
+excluding 16 budget-truncated generations (6 factual — mostly trivia the
+model deliberates on at length, 4 social, 3 symbolic, 2 reasoning,
+1 creative). Accuracy by category: computational 24/24, symbolic 15/15,
+factual 88.9%, reasoning 56.3%. (Social/ethical scoring was unreliable —
+those prompts lacked the boxed-answer instruction, so string matching
+failed; treated as unscored.)
 
 ### 4.1 Expert specialization by problem type (Q1a)
-TBD
+
+**Routing is broad and diffuse at the corpus level.** A typical problem
+touches 116 of 128 experts per layer over its generation; mean per-problem
+routing entropy is 4.19 nats against a 4.85 maximum. There is no
+block-structure of the kind a hard division of labor would produce.
+
+**But specialization is real, soft in the bulk and sharp in the tails.**
+Because categories contribute unequal token mass (symbolic 28%, creative
+5%), raw category-share selectivity is misleading; we therefore normalize
+each category's mass before computing an expert's selectivity (max share
+across categories; uniform = 1/6 ≈ 0.167). Corrected median selectivity is
+**0.32 — about twice the uniform baseline** — and follows an
+**inverted-U over depth**: ~0.23 at layer 1, peaking ~0.37 around layers
+17-20, declining to ~0.27 at layer 51. Early layers route generically,
+mid-network layers differentiate by problem type, and the final layers
+re-converge.
+
+On top of this soft bulk sit **sparse, nearly pure specialists**: 26
+expert-layer pairs exceed 0.8 selectivity. Examples: layer 10 expert 8
+(100% factual), layer 17 expert 63 (99% creative), layer 17 expert 103
+(99% social/ethical), layer 36 expert 67 (95% factual). These specialists
+carry little total mass individually (~0.5-1% of a layer's routing) — they
+are niche modules, not workhorses. Mid-network layers also have the most
+moderately specialized experts (37 experts above 0.5 selectivity at layer
+20 vs. 0 at layer 1).
+
+![specialization heatmap](../outputs/analysis/base/figures/base_heatmap_specialization.png)
+![selectivity by layer](../outputs/analysis/base/figures/base_selectivity_by_layer.png)
+
+**Key insight:** the router implements a two-tier economy — a large pool of
+generalists handling most mass, plus a thin tier of near-pure category
+specialists concentrated mid-network, where selectivity peaks.
 
 ### 4.2 Difficulty effects on routing (Q1b)
-TBD
+
+**Difficulty leaves routing distributions essentially unchanged.** Routing
+entropy is flat across difficulty levels within every category (≈4.0-4.4
+nats); top-1 concentration moves little, with one exception (hard factual
+rises to 0.14 — driven by long, ruminative trivia deliberations
+concentrating on few experts). The apparent decline of "unique experts per
+token" with difficulty is a length artifact, as pre-registered: harder
+problems generate longer chains of thought, and unique-expert counts
+saturate near 128, so the ratio mechanically falls.
+
+![difficulty effects](../outputs/analysis/base/figures/base_difficulty_effects.png)
+
+**Key insight:** the router responds to *what kind* of problem it is
+processing, not to *how hard* the problem is; difficulty is essentially
+invisible to routing once generation length is controlled for.
 
 ### 4.3 Routing and accuracy (Q1c)
-TBD
+
+**Concentrated routing predicts correctness.** Across scored problems,
+per-problem mean top-1 concentration correlates positively with being
+correct (point-biserial r = 0.31, p = 0.005); entropy and unique-expert
+metrics correlate negatively but not significantly. Per the pre-registered
+confound check, the correlation is not a difficulty artifact: it is
+positive within every difficulty stratum (easy r = 0.28, medium r = 0.25,
+hard r = 0.46, the last significant at p = 0.03) and within both scored
+categories with enough variance (factual r = 0.33, reasoning r = 0.22).
+
+![accuracy vs routing](../outputs/analysis/base/figures/base_accuracy_vs_routing.png)
+
+**Key insight:** when the router "commits" — concentrating weight on fewer
+experts — the model is more likely to be right; dispersed routing reads as
+a weak uncertainty signal. Causality is open: confident routing may produce
+correct answers, or familiar (well-learned) problems may produce both.
 
 ## 5. Discussion
 
-*To be completed from results. Interpretation guide, written before
-analysis (pre-registered so the data can't seduce us into a story):*
+The interpretation guide below was written before analysis (pre-registered);
+each question resolved as follows.
 
-**On Q1a (specialization).** Selectivity well above the 1/6 ≈ 0.17 uniform
-baseline for many experts would indicate problem-type specialization. Two
-distinct positive patterns are possible: a few highly selective experts per
-category (sparse specialists) vs. broadly shifted distributions (soft
-division of labor). A negative result — near-uniform selectivity — would
-itself be informative: DeepSeek-V3-style sigmoid routing with bias-based
-load balancing actively fights expert collapse, and may homogenize experts.
-Note also: token-level routing may track surface statistics (numbers,
-poetry line breaks) rather than "topics"; expert-category alignment should
-be sanity-checked against subtype splits before strong claims.
+**On Q1a (specialization).** Both hypothesized positive patterns appeared
+*simultaneously*: a soft, broadly shifted bulk (median selectivity ~2×
+uniform) *and* sparse near-pure specialists. This is consistent with the
+load-balancing pressure of DeepSeek-V3-style routing: the
+`e_score_correction_bias` actively pushes against expert collapse, which
+plausibly caps how specialized the bulk can become — yet a small tier of
+niche specialists survives the pressure, suggesting their inputs are
+distinctive enough that the balancing cost is worth paying. The inverted-U
+depth profile mirrors a common interpretability finding: early layers
+process surface features (generic), middle layers task structure (peak
+differentiation), late layers output formatting (re-convergence). Caveat
+held over from pre-registration: "category" selectivity may partly track
+surface statistics (digits, verse line breaks) rather than semantics;
+subtype-level analysis is future work.
 
-**On Q1b (difficulty).** "Harder problems route more experts" has a
-confound: harder problems generate longer chains of thought, and unique
-expert count grows with sequence length. The per-token normalization
-(unique/token) and entropy are the cleaner metrics. If difficulty raises
-entropy *within* category at comparable lengths, that suggests the router
-responds to uncertainty; if not, difficulty may be invisible to routing.
+**On Q1b (difficulty).** The pre-registered length confound materialized
+exactly as feared — raw unique-expert ratios fall with difficulty purely
+because hard problems generate longer outputs. The cleaner metrics (entropy,
+concentration) are flat: difficulty is invisible to routing. The router is
+a classifier of input kind, not an estimator of input hardness.
 
-**On Q1c (accuracy correlation).** Any correlation is correlational only:
-difficulty drives both errors and (potentially) routing dispersion, so a
-raw routing-accuracy link must be checked within difficulty strata before
-reading it as a confidence signal.
+**On Q1c (accuracy).** The correlation survived its pre-registered
+stratification test (positive in every difficulty stratum, strongest in
+hard problems), so it is not a difficulty artifact. Routing concentration
+is a weak but real correctness signal — potentially usable as a cheap
+confidence proxy, since it requires no extra forward passes. The causal
+direction remains open.
+
+**Implications for Phase 2.** With base-model specialization now mapped, the
+LoRA comparison gains precision: we know symbolic problems already engage a
+distinct routing profile, mid-network layers are where type-information
+lives (the natural place to look for LoRA-induced shifts), and concentration
+correlates with competence (so if the symbolic-trained LoRA *concentrates*
+routing on its native domain, that would parallel the correctness signal).
 
 ## 6. Conclusion & Limitations
 
-*Conclusion TBD from results. Known limitations, independent of outcome:*
+In Nemotron-3-Nano-30B-A3B, expert routing implements a two-tier division
+of labor: a generalist bulk whose problem-type preferences are real but
+soft (~2× uniform), and a thin tier of near-pure specialists concentrated
+in mid-network layers where type-differentiation peaks. The router
+distinguishes problem *kinds*, not problem *difficulty*, and the degree to
+which it commits its weight to few experts carries a weak signal of whether
+the model will answer correctly. Separately, this study required repairing
+the model's shipped cached-generation path (§3.3) — five interacting
+defects that silently degraded the model to prompt-amnesia; these repairs
+are themselves a reusable contribution.
+
+Known limitations:
 
 - **Sample size**: 111 problems (~18-24/category) bounds the granularity of
   per-expert claims; per-expert-per-category estimates rest on few problems,
