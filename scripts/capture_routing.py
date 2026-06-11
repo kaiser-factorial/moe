@@ -287,14 +287,52 @@ def apply_nemotron_patches(model):
     print("cache patches applied (past_key_values->cache_params, "
           "conv_kernel_size, update_*_state list-device bugs)", flush=True)
 
-    # ── Force the pure-torch mamba path. The fused decode path
-    # (causal_conv1d_update) rejects this modeling code's tensor layout
-    # ("weight must have shape (dim, width)") - a kernel-version mismatch.
-    # The torch path is correct; decode is a cheap single-token recurrence.
+    # ── Keep the FUSED mamba path (the pure-torch path silently corrupts
+    # prefill SSM state for longer prompts: model only "sees" the prompt
+    # tail and confabulates the rest - verified via debug_padding tests).
+    # The fused decode's only defect is a layout mismatch: modeling code
+    # passes x as (B, 1, dim) to causal_conv1d_update, which expects
+    # (B, dim, 1) / (B, dim) -> "weight must have shape (dim, width)".
+    # Shim: transpose in, transpose back out.
     import sys as _sys
     _mod = _sys.modules[type(_base).__module__]
-    _mod.is_fast_path_available = False
-    print("mamba fast path disabled (torch_forward)", flush=True)
+    _mod.is_fast_path_available = True
+    _orig_ccu = _mod.causal_conv1d_update
+    def _ccu(x, conv_state, weight, bias=None, activation=None, **kw):
+        if x.dim() == 3 and x.shape[1] != weight.shape[0] \
+           and x.shape[2] == weight.shape[0]:
+            y = _orig_ccu(x.transpose(1, 2).contiguous(), conv_state,
+                          weight, bias, activation, **kw)
+            return y.transpose(1, 2)
+        return _orig_ccu(x, conv_state, weight, bias, activation, **kw)
+    _mod.causal_conv1d_update = _ccu
+    print("fused path kept; causal_conv1d_update layout shim applied", flush=True)
+
+    # ── THE BIG ONE: NemotronHBlock.forward never passes the cache to
+    # attention mixers (`self.mixer(hidden_states, cache_position=...)` -
+    # no past_key_value!). All 6 attention layers therefore store NO KV at
+    # prefill and attend to a single token during decode -> model can only
+    # "see" the prompt tail via mamba conv states; long generations
+    # confabulate and loop. Verified via state_probe.py: kv=(1, 0) on all
+    # attention layers pre-patch.
+    _Block = _mod.NemotronHBlock
+    _orig_block_fwd = _Block.forward
+    def _block_fwd(self, hidden_states, cache_params=None, cache_position=None,
+                   attention_mask=None):
+        if self.block_type != "attention":
+            return _orig_block_fwd(self, hidden_states, cache_params=cache_params,
+                                   cache_position=cache_position,
+                                   attention_mask=attention_mask)
+        residual = hidden_states
+        hidden_states = self.norm(hidden_states.to(dtype=self.norm.weight.dtype))
+        if self.residual_in_fp32:
+            residual = residual.to(torch.float32)
+        out = self.mixer(hidden_states, past_key_value=cache_params,
+                         cache_position=cache_position,
+                         use_cache=cache_params is not None)
+        return residual + out[0]
+    _Block.forward = _block_fwd
+    print("attention KV-cache plumbing patch applied (NemotronHBlock)", flush=True)
 
 
 def run_capture(model, tok, args):

@@ -157,3 +157,31 @@ and results. Maintained by Claude during autonomous research sessions.
 - INFRA: pod connection lost mid-test (~03:45 pod time). /workspace is a
   network volume — model cache, scripts, and logs survive restarts; only
   the SSH port should change.
+
+## Session 2 — 2026-06-11 (new pod 31.24.80.40, same volume)
+
+- Fresh container: pip env rebuilt (transformers 4.57.3, peft, accelerate;
+  einops was an undeclared mamba-ssm runtime dep when installed --no-deps).
+- ERROR 17 RESOLVED — full diagnosis chain:
+  - debug_pad2 (recovered from dead pod): degenerate even SINGLE-row →
+    not a padding/batching issue.
+  - Re-enabled the fused mamba path with a layout shim for
+    `causal_conv1d_update` (modeling passes x as (B,1,dim); kernel wants
+    (B,dim,1)) — ERROR 18: still degenerate.
+  - state_probe.py (Beatrix/Marco prompt: fact mid-prompt, question at
+    end): model knew the question but guessed "Polly" → can only see the
+    prompt TAIL. Cache dump: **all 6 attention layers had EMPTY KV
+    (1, 0)** after prefill.
+  - ERROR 19 (the actual root cause of all degeneracy):
+    `NemotronHBlock.forward` calls attention mixers WITHOUT the cache:
+    `self.mixer(hidden_states, cache_position=...)` — no `past_key_value`.
+    Attention layers stored nothing at prefill and attended to a single
+    token during decode. Patched at runtime (block forward override for
+    attention blocks). Post-patch: KV (1,2,120,128) × 6 layers, model
+    quotes mid-prompt facts verbatim, answers "Marco" correctly.
+- NOTE for the report: with cacheless generation (the accidental original
+  mode) every step re-ran full prefill, so attention layers DID see the
+  whole sequence — that's why the slow run was coherent. The bug only
+  manifests with caching on. NVIDIA's shipped code appears never tested
+  with cached generation in transformers.
+- Full Phase 1 run relaunched (batch 8, all patches).
