@@ -139,6 +139,10 @@ class GateRecorder:
             assert prefill_ids.shape[0] == batch_size * prompt_len, \
                 f"layer {L}: prefill rows {prefill_ids.shape[0]} != B*T"
             if len(calls) > 1:
+                bad = [c[0].shape[0] for c in calls[1:] if c[0].shape[0] != batch_size]
+                assert not bad, (f"layer {L}: decode calls with rows {bad[:3]} != "
+                                 f"B={batch_size} - cache regression (cacheless "
+                                 "full-sequence reprocessing); check cache patch")
                 dec_ids = torch.stack([c[0] for c in calls[1:]], dim=1)  # (B, S, 6)
                 dec_w = torch.stack([c[1] for c in calls[1:]], dim=1)
             else:
@@ -212,6 +216,90 @@ def main():
         model = PeftModel.from_pretrained(model, args.adapter_path)
         print(f"LoRA adapter loaded: {args.adapter_path}", flush=True)
     model.eval()
+    apply_nemotron_patches(model)
+    rec = run_capture(model, tok, args)
+
+
+def apply_nemotron_patches(model):
+    # ── CRITICAL FIX: cache key mismatch in NVIDIA's custom modeling code. ──
+    # prepare_inputs_for_generation returns the cache as "past_key_values",
+    # but NemotronHForCausalLM.forward only accepts it as "cache_params"
+    # (past_key_values lands in **kwargs and is dropped). Without this rename
+    # generate() silently runs CACHELESS, re-processing the full sequence
+    # every step: ~2 tok/s, O(t^2) memory growth (observed OOM), and
+    # variable-row gate calls per decode step.
+    import functools
+    _base = model.get_base_model() if hasattr(model, "get_base_model") else model
+    _orig_prep = _base.prepare_inputs_for_generation
+
+    def _fix_cache(cache):
+        """The shipped HybridMambaAttentionDynamicCache is broken for actual
+        cached use: (a) mixers read cache_params.conv_kernel_size which is
+        never set; (b) update_conv_state / update_ssm_state call .device on
+        the PYTHON LIST self.conv_states / self.ssm_states -> AttributeError.
+        Fix instance attr + class methods once."""
+        if not hasattr(cache, "conv_kernel_size"):
+            cache.conv_kernel_size = _base.config.conv_kernel
+        # modeling code also does `cache_params.ssm_states.device` on the raw
+        # python list (torch_forward L563) -> give the lists a .device
+        class _DeviceList(list):
+            @property
+            def device(self):
+                return self[0].device if len(self) else torch.device("cuda")
+        if not isinstance(cache.ssm_states, _DeviceList):
+            cache.ssm_states = _DeviceList(cache.ssm_states)
+            cache.conv_states = _DeviceList(cache.conv_states)
+        cls = type(cache)
+        if not getattr(cls, "_nemoh_patched", False):
+            def update_conv_state(self, layer_idx, new_conv_state, cache_init=False):
+                dev = self.conv_states[layer_idx].device
+                if cache_init:
+                    self.conv_states[layer_idx] = new_conv_state.to(dev)
+                else:
+                    self.conv_states[layer_idx] = self.conv_states[layer_idx].roll(shifts=-1, dims=-1)
+                    self.conv_states[layer_idx][:, :, -1] = new_conv_state[:, 0, :].to(dev)
+                return self.conv_states[layer_idx]
+            def update_ssm_state(self, layer_idx, new_ssm_state):
+                self.ssm_states[layer_idx] = new_ssm_state.to(self.ssm_states[layer_idx].device)
+                return self.ssm_states[layer_idx]
+            cls.update_conv_state = update_conv_state
+            cls.update_ssm_state = update_ssm_state
+            cls._nemoh_patched = True
+        return cache
+
+    @functools.wraps(_orig_prep)  # generate() inspects this signature
+    def _patched_prep(*a, **k):
+        # generate() round-trips the cache as model_kwargs["cache_params"]
+        # (outputs.cache_params -> ALL_CACHE_NAMES match), but the model's
+        # prepare_inputs_for_generation only reads its past_key_values param;
+        # cache_params would die in **kwargs and a FRESH cache would be
+        # created every decode step. Bridge it in...
+        if k.get("past_key_values") is None and k.get("cache_params") is not None:
+            k["past_key_values"] = k.pop("cache_params")
+        mi = _orig_prep(*a, **k)
+        # ...and bridge it back out: forward() only accepts cache_params.
+        if isinstance(mi, dict) and mi.get("past_key_values") is not None:
+            mi["cache_params"] = _fix_cache(mi.pop("past_key_values"))
+        return mi
+    _base.prepare_inputs_for_generation = _patched_prep
+    if hasattr(model, "prepare_inputs_for_generation"):
+        model.prepare_inputs_for_generation = _patched_prep
+    print("cache patches applied (past_key_values->cache_params, "
+          "conv_kernel_size, update_*_state list-device bugs)", flush=True)
+
+    # ── Force the pure-torch mamba path. The fused decode path
+    # (causal_conv1d_update) rejects this modeling code's tensor layout
+    # ("weight must have shape (dim, width)") - a kernel-version mismatch.
+    # The torch path is correct; decode is a cheap single-token recurrence.
+    import sys as _sys
+    _mod = _sys.modules[type(_base).__module__]
+    _mod.is_fast_path_available = False
+    print("mamba fast path disabled (torch_forward)", flush=True)
+
+
+def run_capture(model, tok, args):
+    problems = json.load(open(args.problems))["problems"]
+    if args.limit: problems = problems[:args.limit]
 
     sampling = dict(temperature=0.6, top_p=0.95, do_sample=True)
     json.dump(dict(seed=SEED, sampling=sampling, top_k_logged=TOP_K,
