@@ -118,12 +118,58 @@ creative and ambiguous social problems are unscored by design.
 
 ### 3.2 Inference protocol
 
-Batched generation (batch 4, grouped by category so token budgets match),
+Batched generation (batch 8, grouped by category so token budgets match),
 temperature 0.6, top-p 0.95, seed fixed per batch, thinking mode enabled,
 budgets 1024-3072 tokens by category. Answers extracted from `\boxed{}`,
 scored by exact/numeric match (multiple choice: last standalone letter).
-Hardware: 1× H100 80GB; model in BF16; transformers 4.57.3 pinned
-(see RUNLOG.md for the full failure catalog behind these choices).
+Generations that hit the token budget without emitting an answer are flagged
+*truncated* and excluded from accuracy analysis (they are not model errors).
+Hardware: 1× H100 80GB; model in BF16; transformers 4.57.3 pinned.
+
+### 3.3 A necessary detour: repairing cached generation
+
+This study's inference stack required fixing the model's shipped code. The
+findings matter for anyone running Nemotron-3-Nano through Hugging Face
+transformers, so we document them as a result in their own right.
+
+**The model ships with cached generation broken end-to-end.** Five distinct
+defects in `modeling_nemotron_h.py` interact so that `generate()` silently
+runs without any cache:
+
+1. `prepare_inputs_for_generation` returns the cache under the key
+   `past_key_values`, but `forward()` only accepts it as `cache_params` —
+   the cache is swallowed by `**kwargs` and dropped, every step.
+2. Even when bridged, generate() round-trips the returned cache as
+   `model_kwargs["cache_params"]`, which `prepare_inputs_for_generation`
+   ignores — so a fresh, empty cache is constructed at every decode step.
+3. The cache class (`HybridMambaAttentionDynamicCache`) lacks the
+   `conv_kernel_size` attribute its own mixers read, and its
+   `update_conv_state`/`update_ssm_state` methods call `.device` on a
+   Python list — they crash on first genuine use.
+4. The fused decode kernel is called with a transposed layout
+   (`causal_conv1d_update` receives x as (B, 1, dim) instead of (B, dim, 1)).
+5. Most consequentially: `NemotronHBlock.forward` never passes the cache to
+   attention mixers at all. All six attention layers store no KV during
+   prefill and attend to a *single token* during decode.
+
+The failure mode of (5) is subtle and instructive: the model does not crash
+or produce gibberish from step one. The Mamba conv states carry the last few
+prompt tokens, so the model knows roughly *that* it was asked something and
+can see the instruction suffix — it then confabulates the rest, producing
+plausible-looking reasoning about a question it cannot see, decaying into
+repetition loops. In a probe with a mid-prompt fact ("a parrot called
+Marco") and an end-of-prompt question, the broken model guessed "Polly";
+the patched model quotes the prompt verbatim and answers correctly.
+
+Why was this never caught? Cacheless generation — the accidental default —
+re-processes the full sequence every step, so attention layers *do* see
+everything and outputs are coherent, just quadratically slow (~2 tok/s
+observed, with O(t²) memory growth). Any test that tolerated the slowness
+would pass. All five defects are patched at runtime in
+`apply_nemotron_patches()` (scripts/capture_routing.py); no model files are
+modified. Post-patch throughput: ~8-16 tok/s batched, coherent long-form
+generation. The full debugging chronology, including dead ends, is in
+RUNLOG.md (19 numbered errors).
 
 ### 3.3 Analysis pipeline
 
@@ -147,13 +193,87 @@ TBD
 TBD
 
 ## 5. Discussion
-TBD
+
+*To be completed from results. Interpretation guide, written before
+analysis (pre-registered so the data can't seduce us into a story):*
+
+**On Q1a (specialization).** Selectivity well above the 1/6 ≈ 0.17 uniform
+baseline for many experts would indicate problem-type specialization. Two
+distinct positive patterns are possible: a few highly selective experts per
+category (sparse specialists) vs. broadly shifted distributions (soft
+division of labor). A negative result — near-uniform selectivity — would
+itself be informative: DeepSeek-V3-style sigmoid routing with bias-based
+load balancing actively fights expert collapse, and may homogenize experts.
+Note also: token-level routing may track surface statistics (numbers,
+poetry line breaks) rather than "topics"; expert-category alignment should
+be sanity-checked against subtype splits before strong claims.
+
+**On Q1b (difficulty).** "Harder problems route more experts" has a
+confound: harder problems generate longer chains of thought, and unique
+expert count grows with sequence length. The per-token normalization
+(unique/token) and entropy are the cleaner metrics. If difficulty raises
+entropy *within* category at comparable lengths, that suggests the router
+responds to uncertainty; if not, difficulty may be invisible to routing.
+
+**On Q1c (accuracy correlation).** Any correlation is correlational only:
+difficulty drives both errors and (potentially) routing dispersion, so a
+raw routing-accuracy link must be checked within difficulty strata before
+reading it as a confidence signal.
 
 ## 6. Conclusion & Limitations
-TBD
+
+*Conclusion TBD from results. Known limitations, independent of outcome:*
+
+- **Sample size**: 111 problems (~18-24/category) bounds the granularity of
+  per-expert claims; per-expert-per-category estimates rest on few problems,
+  so we emphasize layer-level and distribution-level statistics.
+- **Single model, single scale**: findings describe Nemotron-3-Nano-30B-A3B,
+  not MoE models in general; the hybrid Mamba backbone may make routing
+  dynamics atypical relative to full-attention MoEs.
+- **One sample per problem**: temperature 0.6 sampling with one generation
+  per problem conflates sampling noise with routing signal; per-problem
+  routing profiles average over hundreds of tokens, which mitigates but
+  does not eliminate this.
+- **Generated-phase only**: prefill routing is excluded by default (and in
+  batched runs contains left-pad tokens). Conclusions are about routing
+  *while generating*, not while reading.
+- **Top-6 observability**: router scores are logged only for winners; we
+  cannot see near-miss experts, so "routing distribution" means the
+  renormalized winner distribution.
+- **Truncations**: budget-capped generations are excluded from accuracy but
+  their routing tokens are retained; ~severe truncation rates per category
+  are reported alongside accuracy.
+- **Patched inference stack**: all results depend on our runtime repairs to
+  the model's cached-generation path (§3.3). The patches were validated
+  behaviorally (verbatim mid-prompt recall, coherent long-form output), but
+  an upstream-fixed reference implementation, when available, would be the
+  cleaner baseline.
 
 ## Appendix
-- `RUNLOG.md` — chronological error/fix log (12 errors and counting).
-- `outputs/analysis/` — full CSVs and figures.
-- Reproduction: `scripts/build_dataset.py` → `scripts/capture_routing.py` →
-  `scripts/analyze_routing.py`; seeds and configs in `run_config.json`.
+
+### A. Reproducibility
+1. `python scripts/build_dataset.py` — rebuilds `data/problems.json`
+   deterministically (seed 42; MMLU/GSM8K/MATH-500 fetched from the HF
+   datasets-server; symbolic/creative/social generated).
+2. `python scripts/capture_routing.py --model-path <M> --problems
+   data/problems.json --out-dir outputs/logs/base --batch-size 8` — applies
+   all runtime patches, runs instrumented inference, writes per-problem
+   `routing_<pid>.npz` + `results.jsonl` + `run_config.json`.
+3. `python scripts/analyze_routing.py --log-dir outputs/logs/base
+   --problems data/problems.json --out-dir outputs/analysis/base` — all
+   CSVs and figures.
+- Environment pins: transformers==4.57.3, torch 2.8.0+cu128; install
+  `causal-conv1d` and `mamba-ssm` with `--no-deps --no-build-isolation`
+  (their resolver upgrades torch to an incompatible build otherwise), plus
+  `einops`. Single H100 80GB suffices (~70GB peak).
+- `scripts/probe_model.py`, `scripts/state_probe.py`,
+  `scripts/debug_padding.py` — diagnostic tools used to locate the router
+  gate and verify cache integrity.
+
+### B. Error log
+`RUNLOG.md` — chronological error/fix log (19 numbered errors), including
+the full diagnosis narrative of the cached-generation repair.
+
+### C. Full outputs
+`outputs/analysis/` — per-problem metrics, per-expert specialization,
+per-layer statistics, accuracy correlations, all figures.
