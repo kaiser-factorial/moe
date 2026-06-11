@@ -1,22 +1,27 @@
 #!/usr/bin/env python3
-"""Phase 1: instrumented inference with per-token expert-routing capture.
+"""Phase 1/2: batched instrumented inference with per-token routing capture.
 
 For every problem in data/problems.json, generates a response while logging,
-at every MoE layer, the router logits' top-K experts and weights per token.
+at every MoE layer, the router's top-6 expert indices and weights per token.
 
-Primary strategy: forward hook on the router gate (Linear -> n_experts logits).
-Fallback (--expert-hooks): per-expert up_proj hooks (token counts + norms only).
+Router facts (probe-verified): mixer.gate = NemotronHTopkRouter, forward
+returns (topk_indices, topk_weights), each (n_tokens, 6). Weights are sigmoid
+scores normalized to sum 1, then scaled by routed_scaling_factor=2.5.
+The router flattens input to (B*T, hidden), so a batched prefill yields one
+(B*T, 6) call and each decode step yields one (B, 6) call.
 
-Outputs (to --out-dir):
-  routing_<problem_id>.npz   per-layer arrays: ids (T,K) int16, w (T,K) float16,
-                             n_prefill (int), plus generation metadata
-  results.jsonl              one line per problem: generated text, extracted
-                             answer, score, timing, token counts
-  run_config.json            seeds, sampling params, model path, layer map
+Problems are batched by category (same token budget). Per-problem arrays are
+reconstructed from the call stream: prefill rows i*T..(i+1)*T (left-padded -
+includes pad tokens, which is why analysis excludes prefill by default), and
+decode row i of each step, trimmed to the row's true generated length.
+
+Outputs (per problem): routing_<pid>.npz with ids_<layer> (T,6) int16,
+w_<layer> (T,6) float16, n_prefill; plus results.jsonl and run_config.json.
 
 Usage:
-  python capture_routing.py --model-path /path/to/model \
-      --problems data/problems.json --out-dir outputs/logs/base [--limit N]
+  python capture_routing.py --model-path M [--adapter-path A] \
+      --problems data/problems.json --out-dir outputs/logs/base \
+      [--batch-size 8] [--limit N] [--skip-existing]
 """
 import argparse, json, math, os, re, time
 from collections import defaultdict
@@ -30,25 +35,30 @@ N_EXPERTS = 128
 TOP_K = 6
 SEED = 42
 
-MAX_TOKENS = {  # generation budget per category
-    "factual": 768, "computational": 1536, "reasoning": 2560,
-    "creative": 768, "social_ethical": 1024, "symbolic": 3072,
+MAX_TOKENS = {  # generation budget per category (thinking model: generous)
+    "factual": 1536, "computational": 2048, "reasoning": 3072,
+    "creative": 1024, "social_ethical": 1536, "symbolic": 3072,
 }
-ANSWER_SUFFIX = {  # appended to scored prompts to get a parseable answer
+ANSWER_SUFFIX = {
     "multiple_choice": "\n\nThink step by step, then give your final answer as \\boxed{letter}.",
     "number": "\n\nThink step by step, then place your final numeric answer in \\boxed{}.",
     "math_expression": "\n\nThink step by step, then place your final answer in \\boxed{}.",
     "string": "\n\nThink step by step, then place your final answer in \\boxed{}.",
 }
 
-# ── env safeties (from Nemo_Lora_Experts.md, Blackwell) ─────────────────────
 os.environ.setdefault("TRITON_CACHE_DIR", "/tmp/triton_cache")
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 def shadow_mamba():
-    """Shadow mamba_ssm to avoid Cutlass crash on Blackwell (from prior runs)."""
+    """Shadow mamba_ssm to avoid Cutlass crash on Blackwell (SM>=10 only:
+    the stub breaks transformers' is_mamba_2_ssm_available() version check,
+    and Hopper doesn't need it)."""
     import sys, types, importlib.util, importlib.machinery
+    if not (torch.cuda.is_available()
+            and torch.cuda.get_device_capability(0)[0] >= 10):
+        print("Hopper or older GPU - mamba_ssm shadow skipped", flush=True)
+        return
     for name in list(sys.modules):
         if name == "mamba_ssm" or name.startswith("mamba_ssm."):
             del sys.modules[name]
@@ -59,6 +69,7 @@ def shadow_mamba():
         pkg.__path__ = [pkg_dir]; pkg.__package__ = "mamba_ssm"
         pkg.__spec__ = importlib.machinery.ModuleSpec("mamba_ssm", loader=None, is_package=True)
         pkg.__spec__.submodule_search_locations = pkg.__path__
+        pkg.__version__ = "2.3.2"  # transformers inspects this
         sys.modules["mamba_ssm"] = pkg
         m3 = types.ModuleType("mamba_ssm.modules.mamba3")
         m3.__package__ = "mamba_ssm.modules"
@@ -90,48 +101,65 @@ def patch_ptxas():
 
 # ── routing capture ──────────────────────────────────────────────────────────
 class GateRecorder:
-    """Hooks the router gate of each MoE layer; stores top-K per token."""
+    """Buffers (ids, weights) tensors on-GPU per layer; CPU sync only at
+    finalize() — per-token .cpu() syncs were a generation bottleneck."""
     def __init__(self):
-        self.store = defaultdict(lambda: {"ids": [], "w": []})
+        self.calls = defaultdict(list)   # layer -> [(ids GPU, w GPU), ...]
         self.handles = []
 
     def attach(self, model):
-        # NemotronHTopkRouter (= mixer.gate) forward returns
-        # (topk_indices, topk_weights), each (n_tokens, 6); weights are
-        # sigmoid scores normalized to sum 1 then * routed_scaling_factor=2.5.
-        # (Verified via probe_model.py + modeling_nemotron_h.py L874-918.)
+        base = model.get_base_model() if hasattr(model, "get_base_model") else model
         for idx in MOE_LAYERS:
-            mixer = model.backbone.layers[idx].mixer
+            mixer = base.backbone.layers[idx].mixer
             gate = getattr(mixer, "gate", None)
             if gate is None or "router" not in type(gate).__name__.lower():
                 raise RuntimeError(f"layer {idx}: expected mixer.gate router, "
-                                   f"got {type(gate).__name__}; rerun probe_model.py")
+                                   f"got {type(gate).__name__}")
             self.handles.append(gate.register_forward_hook(self._make_hook(idx)))
         print(f"gate hooks on {len(self.handles)} MoE layers", flush=True)
 
     def _make_hook(self, layer_idx):
         def hook(module, inp, out):
-            ids_t, w_t = out                                  # (T, 6) each
-            s = self.store[layer_idx]
-            s["ids"].append(ids_t.detach().cpu().numpy().astype(np.int16))
-            s["w"].append(w_t.detach().float().cpu().numpy().astype(np.float16))
+            ids_t, w_t = out            # fresh tensors from topk/gather: safe to hold
+            self.calls[layer_idx].append((ids_t.detach(), w_t.detach()))
         return hook
 
     def reset(self):
-        self.store.clear()
+        self.calls.clear()
 
-    def dump(self, path, n_prompt_tokens):
-        arrs = {}
-        for layer, s in self.store.items():
-            arrs[f"ids_{layer}"] = np.concatenate(s["ids"], axis=0)
-            arrs[f"w_{layer}"] = np.concatenate(s["w"], axis=0)
-        np.savez_compressed(path, n_prefill=n_prompt_tokens, top_k=TOP_K, **arrs)
+    def finalize(self, batch_size, prompt_len, gen_lens):
+        """Returns per-problem dict: i -> {layer: (ids (T,6) np, w (T,6) np)}.
+        Call stream per layer: 1 prefill call of (B*prompt_len, 6) then one
+        (B, 6) call per decode step. Decode rows are trimmed to gen_lens[i].
+        NOTE: generate()'s prefill emits the model's own first new token too,
+        so decode calls = max(gen_lens) - 1; we count from the stream itself."""
+        out = {i: {} for i in range(batch_size)}
+        for L, calls in self.calls.items():
+            prefill_ids, prefill_w = calls[0]
+            assert prefill_ids.shape[0] == batch_size * prompt_len, \
+                f"layer {L}: prefill rows {prefill_ids.shape[0]} != B*T"
+            if len(calls) > 1:
+                dec_ids = torch.stack([c[0] for c in calls[1:]], dim=1)  # (B, S, 6)
+                dec_w = torch.stack([c[1] for c in calls[1:]], dim=1)
+            else:
+                dec_ids = dec_w = None
+            p_ids = prefill_ids.view(batch_size, prompt_len, TOP_K)
+            p_w = prefill_w.view(batch_size, prompt_len, TOP_K)
+            for i in range(batch_size):
+                n_dec = max(int(gen_lens[i]) - 1, 0)  # token 1 comes from prefill
+                parts_i = [p_ids[i]]; parts_w = [p_w[i]]
+                if dec_ids is not None and n_dec > 0:
+                    parts_i.append(dec_ids[i, :n_dec]); parts_w.append(dec_w[i, :n_dec])
+                ids = torch.cat(parts_i).cpu().numpy().astype(np.int16)
+                w = torch.cat(parts_w).float().cpu().numpy().astype(np.float16)
+                out[i][L] = (ids, w)
+        return out
 
     def detach(self):
         for h in self.handles: h.remove()
         self.handles = []
 
-# ── scoring (adapted from Nemo_Lora_Experts.md) ──────────────────────────────
+# ── scoring ──────────────────────────────────────────────────────────────────
 def extract_final_answer(text):
     if text is None: return "NOT_FOUND"
     m = re.findall(r'\\boxed\{([^}]*)(?:\}|$)', text)
@@ -146,8 +174,8 @@ def extract_final_answer(text):
 def score(predicted, expected, output_type):
     p, e = str(predicted).strip(), str(expected).strip()
     if output_type == "multiple_choice":
-        pl = re.findall(r'[A-Da-d]', p)
-        return bool(pl) and pl[0].upper() == e.upper()
+        pl = re.findall(r'\b([A-Da-d])\b', p)
+        return bool(pl) and pl[-1].upper() == e.upper()
     if p.lower() == e.lower(): return True
     try:
         return math.isclose(float(p), float(e), rel_tol=1e-2, abs_tol=1e-5)
@@ -158,9 +186,10 @@ def score(predicted, expected, output_type):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model-path", required=True)
-    ap.add_argument("--adapter-path", default=None, help="PEFT adapter (Phase 2)")
+    ap.add_argument("--adapter-path", default=None)
     ap.add_argument("--problems", default="data/problems.json")
     ap.add_argument("--out-dir", default="outputs/logs/base")
+    ap.add_argument("--batch-size", type=int, default=8)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--skip-existing", action="store_true")
     args = ap.parse_args()
@@ -174,6 +203,7 @@ def main():
 
     tok = AutoTokenizer.from_pretrained(args.model_path, trust_remote_code=True)
     if tok.pad_token is None: tok.pad_token = tok.eos_token
+    tok.padding_side = "left"
     model = AutoModelForCausalLM.from_pretrained(
         args.model_path, torch_dtype=torch.bfloat16, device_map={"": 0},
         trust_remote_code=True, low_cpu_mem_usage=True)
@@ -186,61 +216,87 @@ def main():
     sampling = dict(temperature=0.6, top_p=0.95, do_sample=True)
     json.dump(dict(seed=SEED, sampling=sampling, top_k_logged=TOP_K,
                    model_path=args.model_path, adapter=args.adapter_path,
-                   moe_layers=MOE_LAYERS, max_tokens=MAX_TOKENS),
+                   batch_size=args.batch_size, moe_layers=MOE_LAYERS,
+                   max_tokens=MAX_TOKENS),
               open(os.path.join(args.out_dir, "run_config.json"), "w"), indent=2)
 
-    rec = GateRecorder(); rec.attach(model)
     results_path = os.path.join(args.out_dir, "results.jsonl")
     done = set()
     if args.skip_existing and os.path.exists(results_path):
         done = {json.loads(l)["problem_id"] for l in open(results_path)}
+    todo = [p for p in problems if p["problem_id"] not in done]
+
+    rec = GateRecorder(); rec.attach(model)
     fout = open(results_path, "a")
+    n_done = 0
+
+    def render(prob):
+        content = prob["prompt"] + (ANSWER_SUFFIX.get(prob["expected_output_type"], "")
+                                    if prob["answer"] else "")
+        msgs = [{"role": "user", "content": content}]
+        try:
+            return tok.apply_chat_template(msgs, tokenize=False,
+                                           add_generation_prompt=True,
+                                           enable_thinking=True)
+        except Exception:
+            return tok.apply_chat_template(msgs, tokenize=False,
+                                           add_generation_prompt=True)
+
+    by_cat = defaultdict(list)
+    for p in todo: by_cat[p["category"]].append(p)
 
     try:
-        for i, prob in enumerate(problems):
-            pid = prob["problem_id"]
-            if pid in done:
-                continue
-            npz_path = os.path.join(args.out_dir, f"routing_{pid}.npz")
-            content = prob["prompt"] + ANSWER_SUFFIX.get(
-                prob["expected_output_type"], "") if prob["answer"] else prob["prompt"]
-            msgs = [{"role": "user", "content": content}]
-            try:
-                ptxt = tok.apply_chat_template(msgs, tokenize=False,
-                                               add_generation_prompt=True,
-                                               enable_thinking=True)
-            except Exception:
-                ptxt = tok.apply_chat_template(msgs, tokenize=False,
-                                               add_generation_prompt=True)
-            inputs = tok(ptxt, return_tensors="pt").to("cuda")
-            n_prompt = inputs["input_ids"].shape[1]
+        for cat, plist in by_cat.items():
+            for b0 in range(0, len(plist), args.batch_size):
+                batch = plist[b0:b0 + args.batch_size]
+                texts = [render(p) for p in batch]
+                enc = tok(texts, return_tensors="pt", padding=True).to("cuda")
+                B, T = enc["input_ids"].shape
 
-            rec.reset()
-            torch.manual_seed(SEED)  # same seed per problem for comparability
-            t0 = time.time()
-            with torch.inference_mode():
-                out_ids = model.generate(
-                    **inputs, max_new_tokens=MAX_TOKENS[prob["category"]],
-                    pad_token_id=tok.eos_token_id, **sampling)
-            dt = time.time() - t0
-            gen = tok.decode(out_ids[0][n_prompt:], skip_special_tokens=True)
-            rec.dump(npz_path, n_prompt)
+                rec.reset()
+                torch.manual_seed(SEED)
+                t0 = time.time()
+                with torch.inference_mode():
+                    out_ids = model.generate(
+                        **enc, max_new_tokens=MAX_TOKENS[cat],
+                        pad_token_id=tok.eos_token_id, **sampling)
+                dt = time.time() - t0
+                gen = out_ids[:, T:]
+                # true generated length per row (cut at first eos, inclusive)
+                gen_lens = []
+                for i in range(B):
+                    row = gen[i]
+                    eos = (row == tok.eos_token_id).nonzero()
+                    gen_lens.append(int(eos[0, 0]) + 1 if len(eos) else row.shape[0])
+                per_problem = rec.finalize(B, T, gen_lens)
 
-            ans = extract_final_answer(gen)
-            ok = (score(ans, prob["answer"], prob["expected_output_type"])
-                  if prob["answer"] else None)
-            rec_line = dict(problem_id=pid, category=prob["category"],
-                            subtype=prob["subtype"], difficulty=prob["difficulty"],
-                            n_prompt_tokens=n_prompt,
-                            n_gen_tokens=int(out_ids.shape[1] - n_prompt),
-                            extracted=ans, expected=prob["answer"], correct=ok,
-                            seconds=round(dt, 1), generated=gen)
-            fout.write(json.dumps(rec_line) + "\n"); fout.flush()
-            print(f"[{i+1}/{len(problems)}] {pid} "
-                  f"{'PASS' if ok else 'FAIL' if ok is False else 'UNSC'} "
-                  f"({out_ids.shape[1]-n_prompt} tok, {dt:.0f}s)", flush=True)
-            del out_ids, inputs
-            torch.cuda.empty_cache()
+                total_tok = sum(gen_lens)
+                statuses = []
+                for i, prob in enumerate(batch):
+                    pid = prob["problem_id"]
+                    text = tok.decode(gen[i][:gen_lens[i]], skip_special_tokens=True)
+                    arrs = dict(n_prefill=T, top_k=TOP_K)
+                    for L, (ids, w) in per_problem[i].items():
+                        arrs[f"ids_{L}"] = ids; arrs[f"w_{L}"] = w
+                    np.savez_compressed(
+                        os.path.join(args.out_dir, f"routing_{pid}.npz"), **arrs)
+                    ans = extract_final_answer(text)
+                    ok = (score(ans, prob["answer"], prob["expected_output_type"])
+                          if prob["answer"] else None)
+                    statuses.append(f"{pid}:{'P' if ok else 'F' if ok is False else 'U'}")
+                    fout.write(json.dumps(dict(
+                        problem_id=pid, category=prob["category"],
+                        subtype=prob["subtype"], difficulty=prob["difficulty"],
+                        n_prompt_tokens=T, n_gen_tokens=gen_lens[i],
+                        extracted=ans, expected=prob["answer"], correct=ok,
+                        seconds=round(dt, 1), generated=text)) + "\n")
+                fout.flush()
+                n_done += B
+                print(f"[{n_done}/{len(todo)}] {cat} batch of {B}: "
+                      f"{total_tok} tok in {dt:.0f}s ({total_tok/dt:.1f} tok/s) | "
+                      + " ".join(statuses), flush=True)
+                del out_ids, enc, gen
+                torch.cuda.empty_cache()
     finally:
         rec.detach(); fout.close()
         print("done; hooks removed", flush=True)

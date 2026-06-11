@@ -86,7 +86,34 @@ and results. Maintained by Claude during autonomous research sessions.
   remote shell's own command line contains the pattern, so pkill killed its
   parent shell. Twice. Fix: self-escaping pattern `pkill -f "probe_mode[l]"`.
 
-### Base model run
-- Launched: 111 problems, top-6 routing per token at 23 MoE layers,
-  temp 0.6 / top_p 0.95 / seed 42 per problem, category-based token budgets.
-- Log: /workspace/run_base.log; outputs: /workspace/moe/outputs/logs/base/.
+### Base model run — false starts
+
+- ERROR 9: transformers 5.11.0 incompatible with the model's custom code:
+  `TypeError: 'NoneType' object is not subscriptable` at `cache_position[-1]`
+  in `prepare_inputs_for_generation` (transformers 5.x changed cache-position
+  plumbing). Model card says "tested on 4.57.3" → pinned transformers==4.57.3.
+- ERROR 10: with 4.57.3, `AttributeError: module 'mamba_ssm' has no attribute
+  '__version__'` — caused by OUR `shadow_mamba()` Blackwell workaround (stub
+  module lacks `__version__`, and 4.57.3's `is_mamba_2_ssm_available()` reads
+  it). Fix: shadow only on SM>=10 GPUs + stub now sets `__version__`.
+- ERROR 11 (performance, the big rewrite): sequential generation measured at
+  **~2 tok/s** (768 tok in 386s, GPU util ~46%) → est. 12-20h for 111
+  problems. Bottleneck: eager per-token decode through 23 MoE layers with a
+  Python expert loop, plus our per-token-per-layer `.cpu()` hook syncs.
+  Also the first factual answer hit the 768-token cap mid-CoT (thinking model
+  needs bigger budgets) and FAILed.
+  → Rewrote `capture_routing.py` for **batched generation** (batch 8, grouped
+  by category), GPU-buffered hooks (single CPU sync per batch at finalize),
+  per-row trimming of post-EOS decode steps, budgets raised (factual 1536,
+  comp 2048, reasoning/symbolic 3072, creative 1024, social 1536).
+  Router flattens batch to (B*T,6) at prefill and (B,6) per decode step;
+  per-problem arrays reconstructed from the call stream. Prefill rows include
+  left-pads (analysis excludes prefill by default, so harmless).
+- ERROR 12 (recurring comedy): `ssh 'pkill -f capture_routin[g]; ... python
+  scripts/capture_routing.py ...'` — bracket trick defeated because the SAME
+  command line legitimately contains the target string, so pkill again killed
+  its own shell (exit 255). Fix: separate ssh invocations for kill and launch.
+
+### Base model run — batched
+- Launched: 111 problems, batch 8 by category, temp 0.6 / top_p 0.95 /
+  seed 42 per batch. Log: /workspace/run_base.log.
