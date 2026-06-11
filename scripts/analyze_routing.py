@@ -42,9 +42,21 @@ def main():
     meta = load_problem_meta(args.problems)
     results = {}
     rpath = os.path.join(args.log_dir, "results.jsonl")
+    # token budgets (to flag truncated generations): from run_config if present
+    budgets = {}
+    cpath = os.path.join(args.log_dir, "run_config.json")
+    if os.path.exists(cpath):
+        budgets = json.load(open(cpath)).get("max_tokens", {})
     if os.path.exists(rpath):
         for line in open(rpath):
             r = json.loads(line)
+            cap = budgets.get(r.get("category"), None)
+            # budget-capped + scored-wrong = ran out of tokens, not a real
+            # miss; exclude from accuracy analysis (correct=None) but keep
+            # the truncation flag.
+            r["truncated"] = bool(cap and r.get("n_gen_tokens", 0) >= cap)
+            if r["truncated"] and r.get("correct") is False:
+                r["correct"] = None
             results[r["problem_id"]] = r
 
     # ── accumulate ───────────────────────────────────────────────────────────
@@ -86,6 +98,7 @@ def main():
                 top1_expert=top1,
                 top6_experts=",".join(map(str, np.argsort(vec)[::-1][:6])),
                 correct=results.get(pid, {}).get("correct"),
+                truncated=results.get(pid, {}).get("truncated"),
                 n_gen_tokens=results.get(pid, {}).get("n_gen_tokens"),
             ))
 
