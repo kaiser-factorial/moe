@@ -258,6 +258,70 @@ experts — the model is more likely to be right; dispersed routing reads as
 a weak uncertainty signal. Causality is open: confident routing may produce
 correct answers, or familiar (well-learned) problems may produce both.
 
+### 4.4 LoRA impact on routing (Q2a-Q2c)
+
+Phase 2 ran the same 111 problems through the model with the
+symbolic-reasoning LoRA (`brick-factorial/nemotron-lora-symbolic-reasoning`,
+r=32) applied, capturing routing identically. A structural fact frames every
+result in this section: **the adapter never touches the routing machinery.**
+Its target modules are Mamba projections (`in_proj`, `out_proj`), attention
+(`q/k/v/o_proj`), and the *shared* experts only — no routed expert and no
+router gate receives a LoRA delta. All routing divergence below is therefore
+*indirect*: the adapter changed the representations flowing into frozen
+routers, and the routers changed their decisions in response.
+
+Run summary: 111/111 problems captured (H100, same patched stack, same
+seeds/budgets). Accuracy was stable outside the training domain
+(computational 24/24, factual 18/24 vs. base 17/24, reasoning 9/18 = base)
+but **dropped on the LoRA's native domain**: symbolic 11/13 vs. base 15/15
+after excluding truncations, with truncations themselves rising 3 → 5 of 18
+(the adapted model deliberates longer and overruns its budget more often).
+
+**Q2a — native-domain shift: real, the largest of any category, yet small
+in absolute terms.** Comparing each problem's per-layer routing-mass
+distribution between models, symbolic problems show the highest divergence
+(mean JSD 0.0537 nats, top-6 Jaccard 0.424) — significantly above all other
+categories pooled (Mann-Whitney U = 1404, n = 18 vs. 93, one-sided
+p < 10⁻⁵, rank-biserial r = 0.68) and above the nearest competitor,
+computational (U = 297, p = 0.020). But scale matters: the *null* distance
+between two different base-model symbolic problems is JSD 0.1096 — twice
+the base→LoRA shift on the same problem. Fine-tuning re-weighted routing;
+it did not re-route the domain. Concentration on symbolic problems rose
+slightly (Δ +0.0023, concentrated in early-mid layers, e.g. +0.024 at
+L15), directionally consistent with Phase 1's concentration↔competence
+signal — though accuracy moved the other way (see A-caveat below).
+Divergence peaks at layer 8 (JSD 0.070) and stays elevated through the
+mid-network, near the specialization peak; layer 1 is almost untouched
+(0.025).
+
+**Q2b — cross-domain leakage: present, graded, bounded.** Divergence
+ordering across categories: factual 0.0239 < social/ethical 0.0268 <
+reasoning 0.0395 < creative 0.0434 < computational 0.0450 < symbolic
+0.0537. Every category diverges far less than its own between-problem null
+(factual: 9× less). The gradient tracks domain adjacency — computational
+(digit-heavy) moves most among non-native categories, factual recall moves
+least. LoRA's routing influence leaks, but proportionally to how much a
+category shares surface/structural features with the training domain.
+
+**Q2c — specialization architecture: preserved.** Per-layer
+expert×category routing-mass patterns correlate at mean Pearson r = 0.927
+between models (min 0.849, at the final layer 51). All 25 near-pure
+specialists (selectivity > 0.8 under the divergence pipeline's
+accounting) retain their category under LoRA — 0 flips — and the
+specialist count is stable (25 → 26). Fine-tuning neither destroyed nor
+re-assigned the specialist tier.
+
+![divergence by layer](../outputs/analysis/divergence/figures/divergence_by_layer.png)
+![jaccard by category](../outputs/analysis/divergence/figures/jaccard_by_category.png)
+![specialist survival](../outputs/analysis/divergence/figures/specialist_survival.png)
+![pattern preservation](../outputs/analysis/divergence/figures/pattern_correlation_by_layer.png)
+
+**Key insight:** a LoRA that never touches routers still steers them —
+most strongly on its training domain, early-to-mid network, with leakage
+graded by domain similarity — but the shift is a re-weighting *within* the
+base model's routing geography (half the distance between two unrelated
+problems), and the specialist economy survives intact.
+
 ## 5. Discussion
 
 The interpretation guide below was written before analysis (pre-registered);
@@ -291,12 +355,31 @@ is a weak but real correctness signal — potentially usable as a cheap
 confidence proxy, since it requires no extra forward passes. The causal
 direction remains open.
 
-**Implications for Phase 2.** With base-model specialization now mapped, the
-LoRA comparison gains precision: we know symbolic problems already engage a
-distinct routing profile, mid-network layers are where type-information
-lives (the natural place to look for LoRA-induced shifts), and concentration
-correlates with competence (so if the symbolic-trained LoRA *concentrates*
-routing on its native domain, that would parallel the correctness signal).
+**Implications for Phase 2 (written before Phase 2; resolution below).**
+With base-model specialization now mapped, the LoRA comparison gains
+precision: we know symbolic problems already engage a distinct routing
+profile, mid-network layers are where type-information lives (the natural
+place to look for LoRA-induced shifts), and concentration correlates with
+competence (so if the symbolic-trained LoRA *concentrates* routing on its
+native domain, that would parallel the correctness signal).
+
+**On Q2 (resolution).** The pre-registered expectations mostly held:
+LoRA-induced shifts are largest on the native domain and the mid-network is
+involved — though the divergence peak sits earlier (L8) than the
+specialization peak (L17-20), suggesting the adapter's influence enters
+through early representation shaping rather than the type-differentiated
+core. The concentration prediction was directionally satisfied
+(routing concentrated slightly on symbolic problems) but decoupled from
+outcome: symbolic accuracy *fell*. This is a useful caution for Q1c's
+interpretation — concentration tracks *familiarity/commitment*, not
+competence per se; an overfit adapter can commit harder and be wrong more.
+The deepest structural finding is the indirectness: with routers and routed
+experts frozen, ~1 bit-scale changes in upstream representations were enough
+to re-rank expert selections (top-6 Jaccard ≈ 0.42-0.64) while leaving the
+expert-category map intact (r = 0.93). Routing in this architecture behaves
+like a stable function over a *moving* representation space — Phase 3's
+control-vector premise (steer routing via Mamba-layer interventions) is
+plausible precisely because that is what the LoRA already did by accident.
 
 ## 6. Conclusion & Limitations
 

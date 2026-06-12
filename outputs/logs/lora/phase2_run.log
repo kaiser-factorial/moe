@@ -1,0 +1,54 @@
+=== phase2 pod start 2026-06-12T00:55:04+00:00 ===
+--- env pins (RUNLOG recipe) ---
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.0.1 -> 26.1.2
+[notice] To update, run: python -m pip install --upgrade pip
+--- pin RELEASE torch 2.8.0+cu128 (image ships a dev build; mamba wheels target release ABI) ---
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.0.1 -> 26.1.2
+[notice] To update, run: python -m pip install --upgrade pip
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.0.1 -> 26.1.2
+[notice] To update, run: python -m pip install --upgrade pip
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.0.1 -> 26.1.2
+[notice] To update, run: python -m pip install --upgrade pip
+torch 2.8.0+cu128
+mamba kernels OK, cuda OK True
+torch 2.8.0+cu128 | transformers 4.57.3
+--- recover base symb-medi-17 (0-byte local copy) ---
+'/workspace/moe/outputs/logs/base/routing_symb-medi-17.npz' -> '/workspace/phase2/logs/base_recovered/routing_symb-medi-17.npz'
+--- capture: LoRA-adapted, 111 problems ---
+Hopper or older GPU - mamba_ssm shadow skipped
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/13 [00:00<?, ?it/s]Loading checkpoint shards:   8%|▊         | 1/13 [00:00<00:09,  1.21it/s]Loading checkpoint shards:  15%|█▌        | 2/13 [00:01<00:08,  1.26it/s]Loading checkpoint shards:  23%|██▎       | 3/13 [00:02<00:07,  1.30it/s]Loading checkpoint shards:  31%|███       | 4/13 [00:03<00:06,  1.29it/s]Loading checkpoint shards:  38%|███▊      | 5/13 [00:03<00:06,  1.26it/s]Loading checkpoint shards:  46%|████▌     | 6/13 [00:04<00:05,  1.18it/s]Loading checkpoint shards:  54%|█████▍    | 7/13 [00:05<00:05,  1.14it/s]Loading checkpoint shards:  62%|██████▏   | 8/13 [00:06<00:04,  1.10it/s]Loading checkpoint shards:  69%|██████▉   | 9/13 [00:07<00:03,  1.09it/s]Loading checkpoint shards:  77%|███████▋  | 10/13 [00:08<00:02,  1.08it/s]Loading checkpoint shards:  85%|████████▍ | 11/13 [00:09<00:01,  1.08it/s]Loading checkpoint shards:  92%|█████████▏| 12/13 [00:10<00:00,  1.07it/s]Loading checkpoint shards: 100%|██████████| 13/13 [00:11<00:00,  1.20it/s]Loading checkpoint shards: 100%|██████████| 13/13 [00:11<00:00,  1.16it/s]
+LoRA adapter loaded: brick-factorial/nemotron-lora-symbolic-reasoning
+cache patches applied (past_key_values->cache_params, conv_kernel_size, update_*_state list-device bugs)
+fused path kept; causal_conv1d_update layout shim applied
+attention KV-cache plumbing patch applied (NemotronHBlock)
+gate hooks on 23 MoE layers
+[8/111] factual batch of 8: 6524 tok in 673s (9.7 tok/s) | fact-easy-01:F fact-easy-02:P fact-easy-03:F fact-easy-04:P fact-easy-05:P fact-easy-06:P fact-easy-07:P fact-easy-08:P
+[16/111] factual batch of 8: 6256 tok in 649s (9.6 tok/s) | fact-medi-09:P fact-medi-10:P fact-medi-11:P fact-medi-12:P fact-medi-13:F fact-medi-14:F fact-medi-15:F fact-medi-16:P
+[24/111] factual batch of 8: 5929 tok in 648s (9.2 tok/s) | fact-hard-17:P fact-hard-18:P fact-hard-19:P fact-hard-20:P fact-hard-21:P fact-hard-22:F fact-hard-23:P fact-hard-24:P
+[32/111] computational batch of 8: 2198 tok in 249s (8.8 tok/s) | comp-easy-01:P comp-easy-02:P comp-easy-03:P comp-easy-04:P comp-easy-05:P comp-easy-06:P comp-medi-07:P comp-medi-08:P
+[40/111] computational batch of 8: 3589 tok in 434s (8.3 tok/s) | comp-medi-09:P comp-medi-10:P comp-medi-11:P comp-medi-12:P comp-hard-13:P comp-hard-14:P comp-hard-15:P comp-hard-16:P
+[48/111] computational batch of 8: 1010 tok in 133s (7.6 tok/s) | comp-hard-17:P comp-hard-18:P comp-easy-19:P comp-easy-20:P comp-easy-21:P comp-easy-22:P comp-easy-23:P comp-easy-24:P
+[56/111] reasoning batch of 8: 5279 tok in 1280s (4.1 tok/s) | reas-easy-01:F reas-easy-02:P reas-easy-03:P reas-easy-04:F reas-easy-05:P reas-easy-06:F reas-medi-07:F reas-medi-08:P
+[64/111] reasoning batch of 8: 12781 tok in 1304s (9.8 tok/s) | reas-medi-09:P reas-medi-10:F reas-medi-11:P reas-medi-12:P reas-hard-13:F reas-hard-14:F reas-hard-15:F reas-hard-16:P
+[66/111] reasoning batch of 2: 3227 tok in 1114s (2.9 tok/s) | reas-hard-17:F reas-hard-18:P
+[74/111] creative batch of 8: 2161 tok in 214s (10.1 tok/s) | crea-loos-01:U crea-loos-02:U crea-loos-03:U crea-loos-04:U crea-loos-05:U crea-loos-06:U crea-stru-07:U crea-stru-08:U
+[78/111] creative batch of 4: 2893 tok in 427s (6.8 tok/s) | crea-stru-09:U crea-stru-10:U crea-stru-11:U crea-stru-12:U
+[86/111] social_ethical batch of 8: 2103 tok in 265s (7.9 tok/s) | soci-easy-01:F soci-easy-02:F soci-easy-03:F soci-easy-04:F soci-easy-05:F soci-medi-06:U soci-medi-07:U soci-medi-08:U
+[93/111] social_ethical batch of 7: 8152 tok in 655s (12.4 tok/s) | soci-medi-09:U soci-medi-10:U soci-hard-11:U soci-hard-12:U soci-hard-13:U soci-hard-14:U soci-hard-15:U
+[101/111] symbolic batch of 8: 10491 tok in 1291s (8.1 tok/s) | symb-easy-01:P symb-medi-02:P symb-hard-03:P symb-easy-04:P symb-medi-05:F symb-hard-06:F symb-easy-07:F symb-medi-08:F
+[109/111] symbolic batch of 8: 12954 tok in 1295s (10.0 tok/s) | symb-hard-09:P symb-easy-10:P symb-medi-11:P symb-hard-12:F symb-easy-13:F symb-medi-14:P symb-hard-15:P symb-easy-16:P
+[111/111] symbolic batch of 2: 4799 tok in 1265s (3.8 tok/s) | symb-medi-17:F symb-hard-18:P
+done; hooks removed
+capture exit: 0
+npz files: 111 / 111
+--- success: self-DELETE pod ynkqgx8vm6qhfh (scoped key) ---
+delete HTTP 204
