@@ -1,0 +1,127 @@
+{
+  "sites": {
+    "e3": {
+      "layer": 3,
+      "block_type": "moe",
+      "family": "post-moe"
+    },
+    "m2": {
+      "layer": 2,
+      "block_type": "mamba",
+      "family": "post-mamba"
+    },
+    "e8": {
+      "layer": 8,
+      "block_type": "moe",
+      "family": "post-moe"
+    },
+    "m7": {
+      "layer": 7,
+      "block_type": "mamba",
+      "family": "post-mamba"
+    },
+    "e13": {
+      "layer": 13,
+      "block_type": "moe",
+      "family": "post-moe"
+    },
+    "m11": {
+      "layer": 11,
+      "block_type": "mamba",
+      "family": "post-mamba"
+    },
+    "e17": {
+      "layer": 17,
+      "block_type": "moe",
+      "family": "post-moe"
+    },
+    "m16": {
+      "layer": 16,
+      "block_type": "mamba",
+      "family": "post-mamba"
+    },
+    "e20": {
+      "layer": 20,
+      "block_type": "moe",
+      "family": "post-moe"
+    },
+    "m18": {
+      "layer": 18,
+      "block_type": "mamba",
+      "family": "post-mamba"
+    },
+    "e27": {
+      "layer": 27,
+      "block_type": "moe",
+      "family": "post-moe"
+    },
+    "m25": {
+      "layer": 25,
+      "block_type": "mamba",
+      "family": "post-mamba"
+    },
+    "e38": {
+      "layer": 38,
+      "block_type": "moe",
+      "family": "post-moe"
+    },
+    "m37": {
+      "layer": 37,
+      "block_type": "mamba",
+      "family": "post-mamba"
+    },
+    "e47": {
+      "layer": 47,
+      "block_type": "moe",
+      "family": "post-moe"
+    },
+    "m46": {
+      "layer": 46,
+      "block_type": "mamba",
+      "family": "post-mamba"
+    }
+  },
+  "seed": 42,
+  "pos_ids": [
+    "symb-easy-01",
+    "symb-easy-04",
+    "symb-easy-07",
+    "symb-easy-10",
+    "symb-easy-13",
+    "symb-easy-16",
+    "symb-hard-03",
+    "symb-hard-06",
+    "symb-hard-09",
+    "symb-hard-12",
+    "symb-hard-15",
+    "symb-hard-18",
+    "symb-medi-02",
+    "symb-medi-05",
+    "symb-medi-08",
+    "symb-medi-11",
+    "symb-medi-14",
+    "symb-medi-17"
+  ],
+  "neg_ids": [
+    "comp-easy-02",
+    "comp-easy-23",
+    "comp-hard-16",
+    "comp-hard-18",
+    "crea-loos-02",
+    "crea-loos-03",
+    "crea-stru-07",
+    "fact-hard-24",
+    "fact-medi-09",
+    "fact-medi-11",
+    "fact-medi-15",
+    "reas-easy-04",
+    "reas-hard-13",
+    "reas-hard-15",
+    "reas-medi-11",
+    "soci-hard-11",
+    "soci-hard-14",
+    "soci-medi-07"
+  ],
+  "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
+  "pooling_primary": "mean"
+}

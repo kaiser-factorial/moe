@@ -1,0 +1,41 @@
+{
+  "seed": 42,
+  "decoding": "greedy",
+  "max_new_tokens": 256,
+  "sites": {
+    "e17": 17,
+    "m16": 16
+  },
+  "alphas": [
+    -8,
+    -2,
+    -0.5,
+    0.5,
+    2,
+    8
+  ],
+  "problem_ids": [
+    "symb-easy-01",
+    "symb-easy-04",
+    "symb-easy-07",
+    "fact-easy-01",
+    "comp-easy-01",
+    "crea-loos-01"
+  ],
+  "conditions": [
+    "base_a",
+    "base_b",
+    "m16_a-8",
+    "m16_a-2",
+    "m16_a-0.5",
+    "m16_a+0.5",
+    "m16_a+2",
+    "m16_a+8",
+    "e17_a-8",
+    "e17_a-2",
+    "e17_a-0.5",
+    "e17_a+0.5",
+    "e17_a+2",
+    "e17_a+8"
+  ]
+}

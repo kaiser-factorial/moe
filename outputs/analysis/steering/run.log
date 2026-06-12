@@ -1,0 +1,98 @@
+=== phase3 pilot pod start 2026-06-12T07:05:59+00:00 ===
+--- env pins (RUNLOG recipe v2) ---
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.0.1 -> 26.1.2
+[notice] To update, run: python -m pip install --upgrade pip
+ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+torchaudio 2.6.0.dev20250319+cu128 requires torch==2.8.0.dev20250319, but you have torch 2.8.0+cu128 which is incompatible.
+torchvision 0.22.0.dev20250319+cu128 requires torch==2.8.0.dev20250319, but you have torch 2.8.0+cu128 which is incompatible.
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.0.1 -> 26.1.2
+[notice] To update, run: python -m pip install --upgrade pip
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.0.1 -> 26.1.2
+[notice] To update, run: python -m pip install --upgrade pip
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.0.1 -> 26.1.2
+[notice] To update, run: python -m pip install --upgrade pip
+torch 2.8.0+cu128
+kernels OK True
+CACHEDIR.TAG
+models--brick-factorial--nemotron-lora-symbolic-reasoning
+models--nvidia--NVIDIA-Nemotron-3-Nano-30B-A3B-BF16
+--- step 1/2: extract vectors (timeout 25m) ---
+Hopper or older GPU - mamba_ssm shadow skipped
+contrast: 18 symbolic vs 18 stratified (['comp-easy-02', 'comp-easy-23', 'comp-hard-16', 'comp-hard-18', 'crea-loos-02', 'crea-loos-03', 'crea-stru-07', 'fact-hard-24', 'fact-medi-09', 'fact-medi-11', 'fact-medi-15', 'reas-easy-04', 'reas-hard-13', 'reas-hard-15', 'reas-medi-11', 'soci-hard-11', 'soci-hard-14', 'soci-medi-07'])
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/13 [00:00<?, ?it/s]Loading checkpoint shards:   8%|▊         | 1/13 [00:09<01:57,  9.79s/it]Loading checkpoint shards:  15%|█▌        | 2/13 [00:19<01:48,  9.86s/it]Loading checkpoint shards:  23%|██▎       | 3/13 [00:28<01:35,  9.56s/it]Loading checkpoint shards:  31%|███       | 4/13 [00:38<01:26,  9.56s/it]Loading checkpoint shards:  38%|███▊      | 5/13 [00:48<01:16,  9.58s/it]Loading checkpoint shards:  46%|████▌     | 6/13 [00:57<01:07,  9.66s/it]Loading checkpoint shards:  54%|█████▍    | 7/13 [01:07<00:57,  9.64s/it]Loading checkpoint shards:  62%|██████▏   | 8/13 [01:16<00:46,  9.33s/it]Loading checkpoint shards:  69%|██████▉   | 9/13 [01:25<00:36,  9.22s/it]Loading checkpoint shards:  77%|███████▋  | 10/13 [01:34<00:27,  9.17s/it]Loading checkpoint shards:  85%|████████▍ | 11/13 [01:43<00:18,  9.26s/it]Loading checkpoint shards:  92%|█████████▏| 12/13 [01:52<00:09,  9.23s/it]Loading checkpoint shards: 100%|██████████| 13/13 [01:58<00:00,  8.19s/it]Loading checkpoint shards: 100%|██████████| 13/13 [01:58<00:00,  9.12s/it]
+16 sites: {'e3': 3, 'm2': 2, 'e8': 8, 'm7': 7, 'e13': 13, 'm11': 11, 'e17': 17, 'm16': 16, 'e20': 20, 'm18': 18, 'e27': 27, 'm25': 25, 'e38': 38, 'm37': 37, 'e47': 47, 'm46': 46}
+NemotronH requires an initialized `NemotronHHybridDynamicCache` to return a cache. None was provided, so no cache will be returned.
+  pos 6/18
+  pos 12/18
+  pos 18/18
+  neg 6/18
+  neg 12/18
+  neg 18/18
+site e3 (L3): |v_mean|=0.55 |v_last|=0.37 sigma=3.8
+site m2 (L2): |v_mean|=0.41 |v_last|=0.28 sigma=2.9
+site e8 (L8): |v_mean|=2.12 |v_last|=1.43 sigma=10.8
+site m7 (L7): |v_mean|=1.91 |v_last|=1.19 sigma=9.4
+site e13 (L13): |v_mean|=5.48 |v_last|=3.03 sigma=26.3
+site m11 (L11): |v_mean|=4.36 |v_last|=2.32 sigma=23.8
+site e17 (L17): |v_mean|=8.82 |v_last|=5.14 sigma=45.3
+site m16 (L16): |v_mean|=7.59 |v_last|=4.63 sigma=36.8
+site e20 (L20): |v_mean|=10.70 |v_last|=8.08 sigma=54.7
+site m18 (L18): |v_mean|=10.00 |v_last|=5.81 sigma=53.7
+site e27 (L27): |v_mean|=21.70 |v_last|=38.71 sigma=109.9
+site m25 (L25): |v_mean|=19.19 |v_last|=24.52 sigma=104.8
+site e38 (L38): |v_mean|=52.26 |v_last|=157.78 sigma=265.4
+site m37 (L37): |v_mean|=49.87 |v_last|=125.67 sigma=245.6
+site e47 (L47): |v_mean|=80.56 |v_last|=227.54 sigma=448.2
+site m46 (L46): |v_mean|=75.63 |v_last|=212.61 sigma=416.1
+vectors.npz + sites.json written
+--- step 2/2: steering pilot (timeout 40m) ---
+Hopper or older GPU - mamba_ssm shadow skipped
+pilot problems: ['symb-easy-01', 'symb-easy-04', 'symb-easy-07', 'fact-easy-01', 'comp-easy-01', 'crea-loos-01']
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/13 [00:00<?, ?it/s]Loading checkpoint shards:   8%|▊         | 1/13 [00:00<00:09,  1.30it/s]Loading checkpoint shards:  15%|█▌        | 2/13 [00:01<00:08,  1.32it/s]Loading checkpoint shards:  23%|██▎       | 3/13 [00:02<00:07,  1.35it/s]Loading checkpoint shards:  31%|███       | 4/13 [00:02<00:06,  1.35it/s]Loading checkpoint shards:  38%|███▊      | 5/13 [00:03<00:05,  1.35it/s]Loading checkpoint shards:  46%|████▌     | 6/13 [00:04<00:05,  1.36it/s]Loading checkpoint shards:  54%|█████▍    | 7/13 [00:05<00:04,  1.36it/s]Loading checkpoint shards:  62%|██████▏   | 8/13 [00:05<00:03,  1.36it/s]Loading checkpoint shards:  69%|██████▉   | 9/13 [00:06<00:02,  1.37it/s]Loading checkpoint shards:  77%|███████▋  | 10/13 [00:07<00:02,  1.37it/s]Loading checkpoint shards:  85%|████████▍ | 11/13 [00:08<00:01,  1.38it/s]Loading checkpoint shards:  92%|█████████▏| 12/13 [00:08<00:00,  1.38it/s]Loading checkpoint shards: 100%|██████████| 13/13 [00:09<00:00,  1.56it/s]Loading checkpoint shards: 100%|██████████| 13/13 [00:09<00:00,  1.40it/s]
+cache patches applied (past_key_values->cache_params, conv_kernel_size, update_*_state list-device bugs)
+fused path kept; causal_conv1d_update layout shim applied
+attention KV-cache plumbing patch applied (NemotronHBlock)
+steering hooks on [('e17', 17), ('m16', 16)]; sigma={'e17': 45.3, 'm16': 36.8}
+gate hooks on 23 MoE layers
+[base_a] 1331 tok in 125s mean_logprob=-0.161
+[base_b] 1331 tok in 102s mean_logprob=-0.161
+[m16_a-8] 1536 tok in 100s mean_logprob=-0.365
+[m16_a-2] 1536 tok in 101s mean_logprob=-0.287
+[m16_a-0.5] 1348 tok in 103s mean_logprob=-0.269
+[m16_a+0.5] 1536 tok in 103s mean_logprob=-0.277
+[m16_a+2] 1536 tok in 101s mean_logprob=-0.231
+[m16_a+8] 1536 tok in 100s mean_logprob=-0.737
+[e17_a-8] 1536 tok in 99s mean_logprob=-0.739
+[e17_a-2] 1536 tok in 102s mean_logprob=-0.447
+[e17_a-0.5] 1353 tok in 103s mean_logprob=-0.276
+[e17_a+0.5] 1536 tok in 103s mean_logprob=-0.200
+[e17_a+2] 1536 tok in 100s mean_logprob=-0.178
+[e17_a+8] 1536 tok in 100s mean_logprob=-1.109
+
+=== PILOT GATE SUMMARY (anchors: noise=base_b, LoRA=0.0537, null=0.110) ===
+        base_b: JSD=0.0000  dOcc=+0.0000  dlogp=+0.000
+       m16_a-8: JSD=0.5729  dOcc=-0.1186  dlogp=-0.205
+       m16_a-2: JSD=0.4435  dOcc=-0.1186  dlogp=-0.127
+     m16_a-0.5: JSD=0.1218  dOcc=-0.1150  dlogp=-0.108
+     m16_a+0.5: JSD=0.0923  dOcc=+0.1198  dlogp=-0.116
+       m16_a+2: JSD=0.4921  dOcc=+0.1012  dlogp=-0.070
+       m16_a+8: JSD=0.5254  dOcc=+0.0675  dlogp=-0.577
+       e17_a-8: JSD=0.5638  dOcc=-0.1186  dlogp=-0.578
+       e17_a-2: JSD=0.4504  dOcc=-0.1186  dlogp=-0.287
+     e17_a-0.5: JSD=0.1300  dOcc=-0.1174  dlogp=-0.115
+     e17_a+0.5: JSD=0.0880  dOcc=+0.0915  dlogp=-0.039
+       e17_a+2: JSD=0.5148  dOcc=+0.0865  dlogp=-0.017
+       e17_a+8: JSD=0.5088  dOcc=+0.0505  dlogp=-0.948
+summary.json written
+--- success: self-DELETE pod s0948eojx7s6gh ---
+delete HTTP 204
