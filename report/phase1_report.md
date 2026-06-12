@@ -438,6 +438,13 @@ Known limitations:
   `causal-conv1d` and `mamba-ssm` with `--no-deps --no-build-isolation`
   (their resolver upgrades torch to an incompatible build otherwise), plus
   `einops`. Single H100 80GB suffices (~70GB peak).
+  **Recipe v2 (Phase 2, 2026-06-11)**: the runpod/pytorch:2.8.0 image now
+  ships a *dev* torch whose ABI breaks the prebuilt mamba kernels — first
+  `pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cu128`
+  (with deps; `--no-deps` breaks NCCL) and `pip uninstall torchvision
+  torchaudio`, then the kernel installs as above. On Hopper also neuter
+  `patch_ptxas()` (triton signature clash). Full chain: RUNLOG.md Session 3,
+  working script: `scripts/phase2_pod.sh`.
 - `scripts/probe_model.py`, `scripts/state_probe.py`,
   `scripts/debug_padding.py` — diagnostic tools used to locate the router
   gate and verify cache integrity.

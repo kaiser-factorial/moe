@@ -207,3 +207,63 @@ and results. Maintained by Claude during autonomous research sessions.
   Concentration-correctness r=0.31 (p=0.005), positive in all difficulty
   strata (hard: r=0.46, p=0.03) → not a difficulty artifact.
 - Results, discussion, conclusion written into report/phase1_report.md.
+
+## Session 3 — 2026-06-11/12 (Phase 2: LoRA capture + divergence)
+
+Run executed via direct RunPod REST API + autonomous on-pod script
+(`scripts/phase2_pod.sh`), after an opbdh detour. Pods: 5suhqtpq7rkhn7,
+6nexhwafi2nhss, 135dve03dzwm5o (attempts), ynkqgx8vm6qhfh (success, H100
+HBM3 $3.29/hr EU-FR-1, ~4h). Results pulled to `outputs/logs/lora/`
+(commit ea64082).
+
+- ERROR 21 — **SPEC's adapter repo was empty**: HF
+  `brick-factorial/nemotron-lora-symbolic-reasoning` contained only
+  .gitattributes; the volume cache snapshot likewise. Real adapter located
+  at `~/Downloads/nemotron-sub/lora-adapter3/checkpoint-1188` (confirmed
+  against expert_inference_log_lora.txt) and uploaded to the SPEC path
+  (README/base_model metadata fixed to pass HF YAML validation).
+- ERROR 22 — **runpod/pytorch:2.8.0 image now ships a DEV torch**
+  (2.8.0.dev20250319+cu128). Prebuilt mamba-ssm/causal-conv1d wheels
+  (fetched by their setup.py even under --no-binary!) target release-torch
+  ABI → `undefined symbol ...SetDeviceEab`. Session 2's pin recipe is
+  insufficient on this image. Fix: `pip install torch==2.8.0 --index-url
+  https://download.pytorch.org/whl/cu128` (WITH deps — see 23) then the
+  usual --no-deps --no-build-isolation kernel installs.
+- ERROR 23 — torch==2.8.0 with `--no-deps` → `ncclCommWindowRegister`
+  missing (dev image's NCCL ≠ release torch's pin). Install torch with its
+  own deps.
+- ERROR 24 — release torch + image's dev-built torchvision →
+  `operator torchvision::nms does not exist` at transformers import.
+  `pip uninstall torchvision torchaudio` (text model; not needed).
+- ERROR 25 — `capture_routing.py:patch_ptxas()` crashes on release-torch
+  triton (`get_ptxas()` signature changed; patched fn demanded `arch`).
+  H100/Hopper never needs the Blackwell redirect → run a pod-local copy
+  with `patch_ptxas` neutered (first-line `return`). Keep the patch for
+  Blackwell pods.
+- ERROR 26 — **THE POD ASSASSIN**: pods carrying the account
+  RUNPOD_API_KEY in their create-env were terminated by RunPod's secret
+  scanner 3-11 min after start, audit-logged as the account owner (looked
+  exactly like someone deleting pods in the console; Corina was innocent).
+  Evidence: only key-carrying pods died; key lastUsed predates deletions.
+  Fix: account key goes in /root/.podenv (container-disk file) written
+  over ssh AFTER boot. Note the auto-injected pod-scoped key cannot
+  stop/delete its own pod (REST 403, GraphQL Unauthorized).
+- ERROR 27 — opbdh (RunPod launcher, github.com/lumpenspace/opbdh):
+  hard-coded `minVCPUPerGPU:8, minRAMPerGPU:64` made every create fail
+  "no pods with required specifications" (patched to 4/24 in
+  ~/.opbdh-venv on the Mac); global ~/.config/opbdh/config.json
+  (auto_network_volume + US-MD-1) silently pinned runs to the wrong DC;
+  its monitor can't run in the Claude sandbox (bwrap --die-with-parent
+  kills background processes per call) — run it on the Mac, or skip
+  opbdh and drive the REST API directly (what Session 3 did). opbdh's
+  HF cache root is /workspace/opbdh-cache, NOT our /workspace/hf.
+- Gotchas reconfirmed: pgrep/pkill self-match (use [b]rackets — claimed
+  two more victims this session); stop→start WIPES container disk (pip
+  env, /root/*) and changes the SSH port; EU-FR-1 stocks H100 HBM3/H200
+  but rarely A100; sandbox clock can lag wall time by hours (trust
+  RunPod audit timestamps); volume-attached pods are DC-pinned.
+- Recovered `routing_symb-medi-17.npz` (0 bytes locally after Session 2's
+  sync) from the volume original — base set is 111/111 intact again.
+- Phase 2 results: see report §4.4, DYFA Q2a-c, and
+  `outputs/analysis/divergence/`. Watchdog scheduled task verified
+  completion; pod self-deleted; balance after run $5.35.
