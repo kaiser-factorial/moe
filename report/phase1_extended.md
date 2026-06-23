@@ -267,6 +267,48 @@ symbolic fine-tuning, while absorbing a modest, sub-saturating amount of
 symbolic spillover — preservation and indirect leakage coexisting, exactly the
 shape Phase 2 predicted at the category level, now localized to a specific team.
 
+## G. Thinking vs answer — and a caution on the Q1c accuracy signal
+
+We split each generation at `</think>` (99/111 base problems have it; boundary
+mapped from char-fraction → token row, since token ids weren't stored — answer
+regions are short so the boundary lands close) and compared mid-network routing
+in the thinking vs answer region.
+
+**No routing shift at the commit point.** Concentration is statistically
+identical across the boundary (thinking 0.0708 vs answer 0.0713; Δ=+0.0005,
+Wilcoxon p=0.36) and so is entropy (p=0.36). The model does **not** route more
+decisively when it stops reasoning and states an answer — confirming §B's
+stationarity finding even at this *semantic* boundary, not just by position.
+
+**Where the Q1c accuracy signal lives — it's metric-dependent.** This split let
+us probe *which* routing measurement carries the Phase-1 concentration↔
+correctness link, and the answer is informative:
+
+- **Per-token, mid-network, thinking-region** concentration (this section's
+  metric) does **not** predict correctness within the gradable categories:
+  factual+reasoning r=+0.04 (p=0.80), answer-region r=+0.27 (p=0.12, n.s.). Its
+  pooled-all-category appearance (r=−0.30) is category-composition driven
+  (within-easy r=−0.60, flat elsewhere).
+- **Per-problem, all-layer, whole-generation aggregated** concentration
+  (Phase-1's Q1c metric) **does** survive category control: factual+reasoning
+  pooled r=**0.44**, p=**0.008** (n=35) — stronger than the all-scored r=0.31.
+  Per single category it's positive but underpowered (factual r=0.33 n=19;
+  reasoning r=0.22 n=16; neither individually significant).
+
+![think vs answer](../outputs/analysis/extended/figures/G_think_answer.png)
+
+**Implication (refinement, not retraction):** Q1c holds — concentration does
+track correctness within the gradable categories — but the signal is **carried
+by the whole-generation aggregated routing distribution, not by per-token
+mid-network concentration, and not differentially by the answer vs thinking
+phase.** In other words it is a *global* property of how a problem is routed,
+consistent with §B/§G stationarity (the model's routing posture is set per
+problem and held), not a local "moment of commitment." The earlier
+within-difficulty checks stand; this adds the within-category check
+(significant pooled) and localizes the effect to the aggregated metric. Caveat:
+per-category n (16–19) is small, so the precise per-type strength is uncertain;
+a larger gradable set would sharpen it.
+
 ## Cheap follow-ups (still no GPU)
 
 - Token-aligned thinking/answer split (parse `</think>`) to confirm B.

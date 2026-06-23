@@ -1,0 +1,30 @@
+{
+  "n": 99,
+  "n_scored": 78,
+  "mean_think_conc": 0.07078471447773012,
+  "mean_ans_conc": 0.07130006157441514,
+  "conc_delta_ans_minus_think": 0.0005153470966850287,
+  "wilcoxon_conc_p": 0.3623134822801931,
+  "mean_think_ent": 3.3900000243059067,
+  "mean_ans_ent": 3.387090472529378,
+  "ent_delta": -0.002909551776528664,
+  "wilcoxon_ent_p": 0.3641554830872108,
+  "corr_answerconc_correct": {
+    "r": 0.0773140323397238,
+    "p": 0.5010726511359862
+  },
+  "corr_thinkconc_correct": {
+    "r": -0.29536314197516095,
+    "p": 0.008656969043348697
+  },
+  "corr_thinkconc_correct_factual_reasoning": {
+    "r": 0.04453273579261596,
+    "p": 0.8025258840679138,
+    "n": 34
+  },
+  "corr_answerconc_correct_factual_reasoning": {
+    "r": 0.27418047696994596,
+    "p": 0.11660713702330347,
+    "n": 34
+  }
+}
