@@ -1,0 +1,5 @@
+{
+  "mean_adjacent_nmi": 0.7138001495029502,
+  "coact_layer": 51,
+  "n_active_experts_L": 128
+}

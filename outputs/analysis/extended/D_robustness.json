@@ -1,0 +1,12 @@
+{
+  "observed_specialists": 26,
+  "perm_null_mean": 4.274,
+  "perm_null_max": 8,
+  "specialists_p": 0.0,
+  "mid_selectivity_median": 0.34284343261108075,
+  "mid_sel_CI95": [
+    0.33346601070066584,
+    0.35298173766494856
+  ],
+  "uniform_baseline": 0.16666666666666666
+}
