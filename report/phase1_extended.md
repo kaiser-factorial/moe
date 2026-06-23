@@ -42,6 +42,34 @@ caveat: the router is distinguishing "Roman numerals" from "Caesar cipher,"
 not merely "has digits." (Reasoning shows the weakest separation, consistent
 with its subtypes — algebra, geometry, number theory — sharing more machinery.)
 
+### A2. Does the symbolic LoRA preserve subtype structure?
+
+Re-running the subtype test on the LoRA logs (`outputs/logs/lora/`) and
+comparing to base directly answers a question Phase 2 raised: the adapter
+*re-weights without re-routing* (§4.4) — but does it preserve the *fine-grained*
+subtype map, or only the coarse category split?
+
+| Category | base within/between (ratio) | LoRA within/between (ratio) |
+|----------|----------------------------:|----------------------------:|
+| symbolic | 0.035 / 0.124 (0.29) | 0.042 / 0.134 (0.32) |
+| reasoning | 0.128 / 0.164 (0.78) | 0.142 / 0.174 (0.82) |
+| factual | 0.143 / 0.234 (0.61) | 0.138 / 0.233 (0.59) |
+
+All six within/between gaps remain highly significant (permutation p ≤ 0.001).
+The side-by-side symbolic matrices show the same six diagonal blocks.
+
+![base vs lora symbolic](../outputs/analysis/extended/figures/A2_base_vs_lora_symbolic.png)
+
+**Finding:** the symbolic-reasoning LoRA **preserves the subtype routing map
+essentially intact** — the separation ratio is unchanged (symbolic 0.29→0.32),
+not collapsed. Fine-tuning on the symbolic domain did not merge its subtypes
+into one undifferentiated "symbolic" blob, nor scramble them. This strengthens
+the Phase-2 conclusion: the adapter nudges *how much* mass goes to the existing
+sub-structure (within-subtype JSD ticks up slightly, +0.007 symbolic) without
+redrawing the map. Specialization is a property of the base model's router that
+LoRA rides on rather than rewrites — exactly the premise Phase 3's
+control-vector approach depends on.
+
 ## B. Temporal dynamics — routing is stationary across a generation
 
 Using per-token routing (mid-network), we binned each generation into deciles
