@@ -1,0 +1,502 @@
+{
+  "8": {
+    "n_communities": 6,
+    "modularity": 0.1965200695454135,
+    "n_active": 128,
+    "edge_threshold": 0.008810730734184665,
+    "communities": [
+      {
+        "size": 35,
+        "mass": 65992.17126464844,
+        "top_category": "symbolic",
+        "top_share": 0.26713420542953364,
+        "cat_shares": {
+          "computational": 0.1090493694202937,
+          "creative": 0.048546411552682786,
+          "factual": 0.21624245064861403,
+          "reasoning": 0.2173980775607174,
+          "social_ethical": 0.14162948538815845,
+          "symbolic": 0.26713420542953364
+        },
+        "n_specialists": 0,
+        "example_experts": [
+          3,
+          5,
+          17,
+          25,
+          29,
+          34,
+          35,
+          36
+        ]
+      },
+      {
+        "size": 34,
+        "mass": 65437.57312011719,
+        "top_category": "symbolic",
+        "top_share": 0.367455824106751,
+        "cat_shares": {
+          "computational": 0.07543295542259824,
+          "creative": 0.0734602416825514,
+          "factual": 0.17612169909395564,
+          "reasoning": 0.21847687614230984,
+          "social_ethical": 0.08905240355183387,
+          "symbolic": 0.367455824106751
+        },
+        "n_specialists": 1,
+        "example_experts": [
+          0,
+          1,
+          4,
+          6,
+          15,
+          38,
+          46,
+          47
+        ]
+      },
+      {
+        "size": 28,
+        "mass": 45337.45544433594,
+        "top_category": "factual",
+        "top_share": 0.31581059337646306,
+        "cat_shares": {
+          "computational": 0.09805882904979311,
+          "creative": 0.03036857650878617,
+          "factual": 0.31581059337646306,
+          "reasoning": 0.2564533673379533,
+          "social_ethical": 0.07750438682833714,
+          "symbolic": 0.2218042468986672
+        },
+        "n_specialists": 0,
+        "example_experts": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          20,
+          21,
+          23
+        ]
+      },
+      {
+        "size": 14,
+        "mass": 22665.887329101562,
+        "top_category": "factual",
+        "top_share": 0.3074255606649303,
+        "cat_shares": {
+          "computational": 0.11155491837688072,
+          "creative": 0.02498859469524464,
+          "factual": 0.3074255606649303,
+          "reasoning": 0.23694886381546676,
+          "social_ethical": 0.18460400699489096,
+          "symbolic": 0.1344780554525866
+        },
+        "n_specialists": 0,
+        "example_experts": [
+          2,
+          7,
+          8,
+          16,
+          22,
+          31,
+          45,
+          62
+        ]
+      },
+      {
+        "size": 11,
+        "mass": 16088.703125,
+        "top_category": "symbolic",
+        "top_share": 0.3256526379146082,
+        "cat_shares": {
+          "computational": 0.10752999636050917,
+          "creative": 0.03388495858409967,
+          "factual": 0.15974935283103342,
+          "reasoning": 0.27371675929684747,
+          "social_ethical": 0.0994662950129021,
+          "symbolic": 0.3256526379146082
+        },
+        "n_specialists": 0,
+        "example_experts": [
+          19,
+          30,
+          33,
+          44,
+          58,
+          61,
+          72,
+          78
+        ]
+      },
+      {
+        "size": 6,
+        "mass": 10908.265869140625,
+        "top_category": "symbolic",
+        "top_share": 0.28876256239976417,
+        "cat_shares": {
+          "computational": 0.10594809246509033,
+          "creative": 0.04981226943255944,
+          "factual": 0.2292680299488877,
+          "reasoning": 0.2370250130835192,
+          "social_ethical": 0.08918403267017913,
+          "symbolic": 0.28876256239976417
+        },
+        "n_specialists": 0,
+        "example_experts": [
+          9,
+          18,
+          42,
+          63,
+          89,
+          123
+        ]
+      }
+    ]
+  },
+  "17": {
+    "n_communities": 4,
+    "modularity": 0.22998199841816055,
+    "n_active": 128,
+    "edge_threshold": 0.010066230255363608,
+    "communities": [
+      {
+        "size": 36,
+        "mass": 83071.81219482422,
+        "top_category": "symbolic",
+        "top_share": 0.3752988871107672,
+        "cat_shares": {
+          "computational": 0.07794908738785929,
+          "creative": 0.06749713269417187,
+          "factual": 0.1640780702160555,
+          "reasoning": 0.2564149696315283,
+          "social_ethical": 0.058761852959617854,
+          "symbolic": 0.3752988871107672
+        },
+        "n_specialists": 1,
+        "example_experts": [
+          4,
+          6,
+          8,
+          10,
+          12,
+          14,
+          27,
+          28
+        ]
+      },
+      {
+        "size": 36,
+        "mass": 62877.836486816406,
+        "top_category": "factual",
+        "top_share": 0.2741595155481505,
+        "cat_shares": {
+          "computational": 0.10613507391656883,
+          "creative": 0.04979710193844901,
+          "factual": 0.2741595155481505,
+          "reasoning": 0.21630972508517848,
+          "social_ethical": 0.1128377120994789,
+          "symbolic": 0.24076087141217428
+        },
+        "n_specialists": 0,
+        "example_experts": [
+          0,
+          2,
+          7,
+          9,
+          11,
+          13,
+          17,
+          18
+        ]
+      },
+      {
+        "size": 35,
+        "mass": 54761.45080566406,
+        "top_category": "reasoning",
+        "top_share": 0.25811807094203787,
+        "cat_shares": {
+          "computational": 0.14134919408811483,
+          "creative": 0.030314650074579397,
+          "factual": 0.2525529200407917,
+          "reasoning": 0.25811807094203787,
+          "social_ethical": 0.07449756473837872,
+          "symbolic": 0.24316760011609748
+        },
+        "n_specialists": 1,
+        "example_experts": [
+          3,
+          5,
+          15,
+          16,
+          20,
+          23,
+          26,
+          33
+        ]
+      },
+      {
+        "size": 21,
+        "mass": 25718.658203125,
+        "top_category": "social_ethical",
+        "top_share": 0.3650634185510838,
+        "cat_shares": {
+          "computational": 0.04288863747463254,
+          "creative": 0.02504682200794611,
+          "factual": 0.2898090870691899,
+          "reasoning": 0.13970805200322328,
+          "social_ethical": 0.3650634185510838,
+          "symbolic": 0.13748398289392436
+        },
+        "n_specialists": 1,
+        "example_experts": [
+          1,
+          22,
+          29,
+          34,
+          42,
+          43,
+          49,
+          50
+        ]
+      }
+    ]
+  },
+  "24": {
+    "n_communities": 4,
+    "modularity": 0.25623019648841994,
+    "n_active": 128,
+    "edge_threshold": 0.008893834361247419,
+    "communities": [
+      {
+        "size": 50,
+        "mass": 98873.7939453125,
+        "top_category": "symbolic",
+        "top_share": 0.38781646628413263,
+        "cat_shares": {
+          "computational": 0.1065632319215335,
+          "creative": 0.05061112322946812,
+          "factual": 0.14162609109041657,
+          "reasoning": 0.2660443181814254,
+          "social_ethical": 0.04733876929302383,
+          "symbolic": 0.38781646628413263
+        },
+        "n_specialists": 1,
+        "example_experts": [
+          2,
+          4,
+          5,
+          6,
+          9,
+          14,
+          16,
+          17
+        ]
+      },
+      {
+        "size": 34,
+        "mass": 61970.761657714844,
+        "top_category": "factual",
+        "top_share": 0.30103684553726984,
+        "cat_shares": {
+          "computational": 0.09874753606825865,
+          "creative": 0.050547102537631845,
+          "factual": 0.30103684553726984,
+          "reasoning": 0.20794046415059456,
+          "social_ethical": 0.1059298260397594,
+          "symbolic": 0.2357982256664857
+        },
+        "n_specialists": 0,
+        "example_experts": [
+          0,
+          3,
+          8,
+          11,
+          12,
+          13,
+          15,
+          22
+        ]
+      },
+      {
+        "size": 30,
+        "mass": 46344.338958740234,
+        "top_category": "factual",
+        "top_share": 0.34493485617085484,
+        "cat_shares": {
+          "computational": 0.05887397061965361,
+          "creative": 0.03618355272095206,
+          "factual": 0.34493485617085484,
+          "reasoning": 0.1546138081249717,
+          "social_ethical": 0.28235692720208055,
+          "symbolic": 0.12303688516148727
+        },
+        "n_specialists": 0,
+        "example_experts": [
+          1,
+          7,
+          21,
+          23,
+          25,
+          28,
+          31,
+          33
+        ]
+      },
+      {
+        "size": 14,
+        "mass": 19241.038330078125,
+        "top_category": "reasoning",
+        "top_share": 0.32604583711118656,
+        "cat_shares": {
+          "computational": 0.13555506569344067,
+          "creative": 0.06387592194433353,
+          "factual": 0.1823248795067986,
+          "reasoning": 0.32604583711118656,
+          "social_ethical": 0.05790733569109188,
+          "symbolic": 0.23429096005314873
+        },
+        "n_specialists": 1,
+        "example_experts": [
+          10,
+          26,
+          27,
+          37,
+          43,
+          46,
+          54,
+          60
+        ]
+      }
+    ]
+  },
+  "38": {
+    "n_communities": 5,
+    "modularity": 0.23542547253319374,
+    "n_active": 128,
+    "edge_threshold": 0.009056059977307084,
+    "communities": [
+      {
+        "size": 49,
+        "mass": 95508.22052001953,
+        "top_category": "symbolic",
+        "top_share": 0.35950902139710633,
+        "cat_shares": {
+          "computational": 0.08926078814649235,
+          "creative": 0.0252601822186106,
+          "factual": 0.1924767205349714,
+          "reasoning": 0.246037485454633,
+          "social_ethical": 0.08745580224818633,
+          "symbolic": 0.35950902139710633
+        },
+        "n_specialists": 0,
+        "example_experts": [
+          0,
+          1,
+          5,
+          7,
+          11,
+          12,
+          16,
+          17
+        ]
+      },
+      {
+        "size": 49,
+        "mass": 89639.77380371094,
+        "top_category": "symbolic",
+        "top_share": 0.25534549582771704,
+        "cat_shares": {
+          "computational": 0.125957453129522,
+          "creative": 0.0555308274638039,
+          "factual": 0.20990025633291493,
+          "reasoning": 0.24329421339897545,
+          "social_ethical": 0.1099717538470667,
+          "symbolic": 0.25534549582771704
+        },
+        "n_specialists": 1,
+        "example_experts": [
+          2,
+          3,
+          6,
+          9,
+          10,
+          14,
+          15,
+          18
+        ]
+      },
+      {
+        "size": 19,
+        "mass": 24806.99053955078,
+        "top_category": "social_ethical",
+        "top_share": 0.2563926834027489,
+        "cat_shares": {
+          "computational": 0.05482289214520346,
+          "creative": 0.10672123299142602,
+          "factual": 0.24996115210592418,
+          "reasoning": 0.19190521368251012,
+          "social_ethical": 0.2563926834027489,
+          "symbolic": 0.14019682567218728
+        },
+        "n_specialists": 0,
+        "example_experts": [
+          4,
+          8,
+          13,
+          21,
+          43,
+          44,
+          46,
+          53
+        ]
+      },
+      {
+        "size": 8,
+        "mass": 11240.571716308594,
+        "top_category": "factual",
+        "top_share": 0.4910040194438778,
+        "cat_shares": {
+          "computational": 0.05887045299199779,
+          "creative": 0.053484168076688966,
+          "factual": 0.4910040194438778,
+          "reasoning": 0.1742929337693042,
+          "social_ethical": 0.06606117984284865,
+          "symbolic": 0.15628724587528262
+        },
+        "n_specialists": 0,
+        "example_experts": [
+          26,
+          30,
+          70,
+          72,
+          86,
+          89,
+          111,
+          117
+        ]
+      },
+      {
+        "size": 3,
+        "mass": 5234.437194824219,
+        "top_category": "factual",
+        "top_share": 0.6178431135478929,
+        "cat_shares": {
+          "computational": 0.029576677487938897,
+          "creative": 0.07710288516977626,
+          "factual": 0.6178431135478929,
+          "reasoning": 0.11515886955587597,
+          "social_ethical": 0.025121389940574283,
+          "symbolic": 0.1351970642979417
+        },
+        "n_specialists": 0,
+        "example_experts": [
+          66,
+          120,
+          125
+        ]
+      }
+    ]
+  }
+}

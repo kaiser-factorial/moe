@@ -186,6 +186,49 @@ mining sharpens it on four fronts, for free:
    selectivity CI clear of baseline), and the Phase-3 steering direction is
    **geometrically consistent across sites** (D).
 
+## E. Naming the expert teams (co-activation communities)
+
+Section C showed experts co-fire in blocks; here we run greedy-modularity
+community detection on the within-layer co-activation graph and characterize
+each team by **category enrichment** = (team's share of a category's mass) ÷
+(that category's corpus base rate). Enrichment > 2 means a team handles a
+category 2× more than chance; raw shares are misleading because symbolic is
+28% of all tokens while creative is 5%.
+
+Communities are real but soft: modularity Q ≈ 0.20–0.26 across layers 8/17/24/38
+(random ≈ 0), with 4–6 teams per layer.
+
+**Most category-specialized teams (by enrichment):**
+
+| Layer | team size | category | enrichment |
+|------:|----------:|----------|-----------:|
+| 17 | 21 experts | social/ethical | **3.25×** |
+| 38 | 3 experts | factual | 2.68× |
+| 24 | 30 experts | social/ethical | 2.51× |
+| 38 | 19 experts | social/ethical | 2.28× |
+| 38 | 8 experts | factual | 2.13× |
+
+![team enrichment](../outputs/analysis/extended/figures/E_team_enrichment.png)
+
+**Findings:**
+- **Social/ethical reasoning has the most distinctly organized team** — a
+  coherent, strongly enriched community at layers 17 (3.25×), 24 (2.5×) and 38
+  (2.3×). This is striking given social/ethical was the *unscorable* category:
+  its routing is the most team-structured even though we couldn't grade its
+  answers. The model treats moral-reasoning tokens as a distinct computational
+  mode.
+- **Factual gets small, sharply enriched teams late** (layer 38: 3- and
+  8-expert teams at 2.1–2.7×) — compact late-network modules, consistent with
+  factual recall being resolved near the output.
+- **Symbolic, despite dominating token mass, spreads across large, only
+  mildly enriched teams** (~1.4×). This fits §A: symbolic isn't one team but
+  several subtype clusters, so no single community monopolizes it.
+
+So the two-tier picture from Phase 1 refines further: the "soft bulk" is itself
+organized into **category-leaning teams**, most sharply for social/ethical and
+late-layer factual, while the high-volume symbolic traffic is handled by a
+federation of subtype clusters rather than one team.
+
 ## Cheap follow-ups (still no GPU)
 
 - Token-aligned thinking/answer split (parse `</think>`) to confirm B.
