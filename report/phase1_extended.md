@@ -345,6 +345,46 @@ report — and layer 17 stands out as the network's specialization hotspot acros
 three independent lenses. Indirect fine-tuning nudges the whole system toward
 concentration without breaking the balance.
 
+## I. Inside the hotspot: a layer-17 expert atlas
+
+Layer 17 is the specialization nexus (peak selectivity, sharpest social team,
+peak Gini). Here we profile all 128 of its experts individually — mass,
+selectivity, top category — and track what the symbolic LoRA did to each.
+
+![L17 atlas](../outputs/analysis/extended/figures/I_l17_atlas.png)
+
+**The two-tier economy, made literal.** Every expert sits above the 1/6 uniform
+selectivity line, but the layer splits cleanly:
+- **Three near-pure specialists**, low-mass and extreme: **E63** (creative,
+  selectivity 0.98), **E103** (social/ethical, 0.97 — the core of the §E/§F
+  social team), and **E33** (symbolic, 0.82). These are niche modules carrying
+  well under 1% of mass each.
+- **A body of moderately-specialized workhorses** at 0.25–0.6 selectivity
+  carrying the bulk of traffic. The highest-mass "hubs" (E121, E74, E116, each
+  ~2–2.6% of layer mass) lean symbolic at moderate selectivity (0.33–0.50) —
+  high-volume generalists, not specialists.
+
+So the hotspot isn't hot because a few experts monopolize it; it's hot because
+the *whole layer* is more differentiated than its neighbors, anchored by three
+pure specialists.
+
+**What the LoRA did here (expert-level re-weighting).** The adapter
+*redistributed* mass rather than amplifying the existing leaders:
+- biggest **losers** were the symbolic *hubs* — E121 (−0.94%), E45 (−0.86%),
+  E111 (−0.39%);
+- biggest **gainer** was a *reasoning* expert, E21 (+2.0%, the single largest
+  move at L17), followed by symbolic E30/E14/E62.
+
+So symbolic fine-tuning, at the hotspot, pulled traffic *off* the old
+high-volume symbolic hubs and *onto* a reasoning-affiliated expert plus a
+different symbolic subset. This is "re-weight, not re-route" at maximum
+resolution — the menu of experts is unchanged, but the order is rewritten — and
+the reasoning-expert gain is the §F leakage made specific: symbolic problems
+(a form of reasoning) get pushed through reasoning machinery. Full per-expert
+table: `outputs/analysis/extended/I_l17_atlas.csv`.
+
+![L17 LoRA delta](../outputs/analysis/extended/figures/I_l17_lora_delta.png)
+
 ## Cheap follow-ups (still no GPU)
 
 - Token-aligned thinking/answer split (parse `</think>`) to confirm B.
