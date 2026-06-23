@@ -1,0 +1,32 @@
+{
+  "17": {
+    "base_team_size": 21,
+    "lora_team_size": 54,
+    "base_social_enrich": 3.249,
+    "baseteam_in_lora_social_enrich": 2.955,
+    "baseteam_symbolic_enrich_base": 0.493,
+    "baseteam_symbolic_enrich_lora": 0.717,
+    "membership_jaccard": 0.271,
+    "lora_own_social_team_enrich": 1.562
+  },
+  "24": {
+    "base_team_size": 30,
+    "lora_team_size": 25,
+    "base_social_enrich": 2.513,
+    "baseteam_in_lora_social_enrich": 2.409,
+    "baseteam_symbolic_enrich_base": 0.441,
+    "baseteam_symbolic_enrich_lora": 0.589,
+    "membership_jaccard": 0.618,
+    "lora_own_social_team_enrich": 2.416
+  },
+  "38": {
+    "base_team_size": 19,
+    "lora_team_size": 4,
+    "base_social_enrich": 2.282,
+    "baseteam_in_lora_social_enrich": 2.167,
+    "baseteam_symbolic_enrich_base": 0.503,
+    "baseteam_symbolic_enrich_lora": 0.768,
+    "membership_jaccard": 0.045,
+    "lora_own_social_team_enrich": 2.468
+  }
+}

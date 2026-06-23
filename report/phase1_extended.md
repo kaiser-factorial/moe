@@ -229,6 +229,44 @@ organized into **category-leaning teams**, most sharply for social/ethical and
 late-layer factual, while the high-volume symbolic traffic is handled by a
 federation of subtype clusters rather than one team.
 
+## F. Does the social/ethical team survive the symbolic LoRA?
+
+The §E social team is the model's most distinctly organized community, so it's
+the sharpest probe of what symbolic-only fine-tuning does to an *unrelated*
+domain's machinery. We froze the base-model social team membership at layers
+17/24/38 and measured that exact expert set in both runs: did it stay social,
+and did symbolic traffic leak in? (Router is frozen — any change is indirect.)
+
+| Layer | base team | social enrich: base → LoRA | symbolic leak: base → LoRA | membership Jaccard |
+|------:|----------:|---------------------------:|---------------------------:|-------------------:|
+| 17 | 21 experts | 3.25× → 2.95× | 0.49× → 0.72× | 0.27 |
+| 24 | 30 experts | 2.51× → 2.41× | 0.44× → 0.59× | 0.62 |
+| 38 | 19 experts | 2.28× → 2.17× | 0.50× → 0.77× | 0.05 |
+
+![social team under LoRA](../outputs/analysis/extended/figures/F_social_team_lora.png)
+
+**Findings — preservation *with* measurable leakage:**
+- **The social team keeps its job.** Those experts remain 2.2–3.0× social-
+  enriched under LoRA (only a slight drop, ~0.1–0.3×). Symbolic-only fine-tuning
+  did not dismantle an unrelated domain's team — consistent with the
+  re-weight-not-re-route and subtype-preservation findings.
+- **But symbolic traffic leaks in.** Symbolic enrichment of the (frozen) social
+  team rose at every layer (0.49→0.72, 0.44→0.59, 0.50→0.77) — a relative jump
+  of ~40–55%. It stays *below* 1× (the social team still under-serves symbolic),
+  so this is encroachment, not capture. This is the §4.4 graded cross-domain
+  leakage made concrete at the team level: the adapter's altered hidden states
+  push a bit more symbolic mass onto formerly social-dedicated experts.
+- **Membership boundaries reshuffle more than function.** Community Jaccard
+  ranges widely (0.62 at L24, 0.05 at L38). Greedy-modularity boundaries are
+  unstable where routing is diffuse (late layers), so we trust the frozen-set
+  *enrichment* (robust) over the *membership* match. The functional read is
+  clear: the team's identity persists even where its detected boundary drifts.
+
+**Takeaway:** the social/ethical team is preserved as a *function* under
+symbolic fine-tuning, while absorbing a modest, sub-saturating amount of
+symbolic spillover — preservation and indirect leakage coexisting, exactly the
+shape Phase 2 predicted at the category level, now localized to a specific team.
+
 ## Cheap follow-ups (still no GPU)
 
 - Token-aligned thinking/answer split (parse `</think>`) to confirm B.
