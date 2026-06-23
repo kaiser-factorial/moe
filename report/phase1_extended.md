@@ -132,19 +132,24 @@ blocks rather than a uniform field — sets of experts that habitually co-fire.
 
 ![co-activation L17](../outputs/analysis/extended/figures/C_coactivation_L17.png)
 
-**Across layers**, a problem's top-1 expert at one MoE layer strongly predicts
-its top-1 at the next: normalized mutual information averages **0.71** and is
-remarkably stable (0.66–0.79) across all 22 adjacent layer pairs.
+**Across layers**, a problem's top-1 expert at one MoE layer co-varies with its
+top-1 at the next: raw normalized mutual information averages 0.71, stable
+across all 22 adjacent pairs. **But that raw number is mostly artifact.** A
+permutation null (shuffle problem identity between layers, 22 pairs) sits at
+**0.60** — the small-sample/many-label bias floor (111 problems, up to 128
+distinct top-1 labels inflate MI mechanically). The **bias-corrected excess is
+only 0.117** (min 0.030 across pairs), though it is positive for every pair.
 
 ![cross-layer NMI](../outputs/analysis/extended/figures/C_crosslayer_nmi.png)
 
-**Finding:** routing is not 23 independent decisions — it is a coherent
-*pathway*. A problem entering a specialist track tends to stay on it layer
-after layer. This is the mechanistic substrate of the Phase-1 specialization:
-specialists aren't isolated per-layer modules but links in consistent
-cross-layer routes. (Caveat: part of the NMI reflects a few globally popular
-top-1 experts shared across problems; a label-shuffle null would isolate the
-problem-specific component and is a cheap next step.)
+**Finding (corrected):** there *is* statistically real problem-specific
+cross-layer coupling — a problem's expert choice carries information about the
+next layer's choice for all 22 pairs — but it is **modest, not the strong
+"coherent pathway" the raw 0.71 suggested** (excess ≈0.12 over a 0.60 bias
+floor). The within-layer team structure (the co-activation blocks above) is the
+firmer of the two C findings; the cross-layer pathway is real but weak. This
+correction was the reason to run the null before consolidating
+(`outputs/analysis/extended/C_nmi_null.json`).
 
 ## D. Robustness and steering-vector geometry
 
@@ -180,8 +185,9 @@ mining sharpens it on four fronts, for free:
    surface-feature artifact (A).
 2. It is **temporally stationary** — a fixed posture per problem type, not a
    late-generation event (B).
-3. It is **organized into cross-layer pathways**, not independent per-layer
-   picks (C).
+3. It is **organized into within-layer expert teams** (co-activation blocks),
+   with weak-but-real problem-specific cross-layer coupling on top (C, null-
+   corrected).
 4. The core claims are **statistically robust** (specialists p<0.002; bulk
    selectivity CI clear of baseline), and the Phase-3 steering direction is
    **geometrically consistent across sites** (D).
