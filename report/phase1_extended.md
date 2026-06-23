@@ -309,6 +309,42 @@ within-difficulty checks stand; this adds the within-category check
 per-category n (16–19) is small, so the precise per-type strength is uncertain;
 a larger gradable set would sharpen it.
 
+## H. Load balancing — the anti-collapse bias works, and L17 is the hotspot
+
+NemotronH's router carries a DeepSeek-V3-style `e_score_correction_bias` whose
+purpose is to keep the 128 experts balanced and prevent collapse. We test the
+*outcome* on real traffic: the corpus-aggregate routing-mass distribution over
+experts, per layer (Gini, dead experts, #experts carrying 50% of mass).
+
+![load balancing](../outputs/analysis/extended/figures/H_load_balancing.png)
+
+**Findings:**
+- **No collapse, anywhere.** Zero dead experts in every one of the 23 layers,
+  in both base and LoRA. All 128 experts carry traffic — the balancing bias
+  does its job; there are no vestigial experts.
+- **Balanced, but not uniform.** Mean Gini is 0.28 (base); ~40 of 128 experts
+  carry 50% of the mass (vs 64 if perfectly uniform). So routing concentrates
+  moderately onto a working subset without abandoning the rest.
+- **L17 is the differentiation hotspot — by a third independent measure.** Gini
+  peaks sharply at layer 17 (0.43; only 30 experts carry 50% of mass there),
+  following the same inverted-U over depth as selectivity (§ Phase-1 4.1) and
+  coinciding with the sharpest social/ethical team (§E). Three unrelated
+  metrics — selectivity, team enrichment, utilization inequality — all point at
+  mid-network layer 17 as where the model most sharply differentiates.
+- **LoRA concentrates load slightly, everywhere.** The adapter raises Gini at
+  nearly every layer (mean 0.280 → 0.315) and shrinks the 50%-mass set
+  (40.2 → 37.4 experts) — without creating dead experts (the frozen router
+  still balances). This is the architectural footprint of the "re-weighting
+  concentrates routing" theme from Phase 2/§A3: changed hidden states push a
+  bit more mass onto fewer experts globally, but the anti-collapse machinery
+  holds.
+
+**Takeaway:** the load-balancing design is effective (no collapse, moderate
+Gini) yet leaves room for the genuine specialization documented throughout this
+report — and layer 17 stands out as the network's specialization hotspot across
+three independent lenses. Indirect fine-tuning nudges the whole system toward
+concentration without breaking the balance.
+
 ## Cheap follow-ups (still no GPU)
 
 - Token-aligned thinking/answer split (parse `</think>`) to confirm B.
