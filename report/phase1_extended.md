@@ -70,6 +70,42 @@ redrawing the map. Specialization is a property of the base model's router that
 LoRA rides on rather than rewrites — exactly the premise Phase 3's
 control-vector approach depends on.
 
+### A3. When does the LoRA re-weight? (temporal divergence base↔LoRA)
+
+Combining A2 with the temporal view: for each category we aggregated routing
+mass by generation decile, separately for base and LoRA, and measured the
+per-decile JSD between them — *where along the generation* does the adapter
+change routing?
+
+![temporal divergence](../outputs/analysis/extended/figures/A3_temporal_divergence.png)
+
+| Category | mean JSD | first decile | last decile |
+|----------|---------:|-------------:|------------:|
+| symbolic (native) | 0.0087 | **0.0095** | 0.0127 |
+| creative | 0.0099 | 0.0043 | 0.0168 |
+| reasoning | 0.0075 | 0.0031 | 0.0112 |
+| computational | 0.0073 | 0.0032 | 0.0081 |
+| social_ethical | 0.0047 | 0.0031 | 0.0059 |
+| factual | 0.0033 | 0.0025 | 0.0054 |
+
+**Finding — two distinct temporal signatures.** On its **native** domain
+(symbolic), the adapter's routing change is present *immediately*: first-decile
+divergence (0.0095) is ~3× any other category's and barely rises. The model's
+routing posture is shifted from the very first generated token — the adapter
+changed how symbolic problems are *recognized*. On **non-native** domains,
+divergence starts near-zero and **grows toward the answer** (creative
+0.004→0.017, reasoning 0.003→0.011): there the adapter didn't change initial
+recognition, but its altered hidden states let routing *drift* as generation
+proceeds. Factual is least perturbed throughout (the most distant domain).
+
+All magnitudes are small (JSD < 0.017, consistent with Phase 2's modest
+full-distribution 0.0537 vs the 0.110 between-problem null), reinforcing
+"re-weight, not re-route" — and now adding that the re-weighting is
+*front-loaded on the trained domain and drift-driven elsewhere*. This dovetails
+with the target-module finding (`report/lora_target_modules.md`): since the
+router is frozen and only attention/Mamba/shared-expert changed, native-domain
+recognition shifts immediately while off-domain effects accumulate downstream.
+
 ## B. Temporal dynamics — routing is stationary across a generation
 
 Using per-token routing (mid-network), we binned each generation into deciles
