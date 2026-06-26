@@ -1,0 +1,16 @@
+{
+  "image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+  "cloud_type": "SECURE",
+  "vram_gb": 80,
+  "max_dollars_per_hour": 6.0,
+  "container_disk_gb": 20,
+  "network_volume_id": "gdqj7o63ik",
+  "auto_network_volume": false,
+  "keep_pod_on_success": true,
+  "max_spend_dollars": 25.0,
+  "poll_seconds": 15,
+  "failure_keepalive_seconds": 60,
+  "pre_download_model": false,
+  "command": "bash /opbdh-run/user/launch_ws2_probe.sh",
+  "results_dir": "outputs/opbdh_runs"
+}

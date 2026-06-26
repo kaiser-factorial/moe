@@ -40,6 +40,26 @@ for name, mod in mixer.named_modules():
         candidates.append(name)
         print(f"  mixer.{name}: {type(mod).__name__} weight={tuple(mod.weight.shape)}")
 
+# --- router (mixer.gate) trainable surface: what to target for router training ---
+# From modeling_nemotron_h.py NemotronHTopkRouter.__init__:
+#   self.weight = nn.Parameter([n_routed_experts, hidden])   <- ONLY trainable param
+#   self.e_score_correction_bias = register_buffer([n_routed_experts])  <- BUFFER (no grad)
+gate = getattr(mixer, "gate", None)
+if gate is not None:
+    print(f"--- mixer.gate = {type(gate).__name__}: parameters (trainable surface) ---")
+    for n, prm in gate.named_parameters():
+        print(f"  param  gate.{n:30s} shape={tuple(prm.shape)} dtype={prm.dtype} requires_grad={prm.requires_grad}")
+    for n, buf in gate.named_buffers():
+        print(f"  buffer gate.{n:30s} shape={tuple(buf.shape)} dtype={buf.dtype} (NOT grad-trained)")
+    # count router params across all MoE layers (what router-only training would touch)
+    total = 0
+    for L in MOE_LAYERS:
+        g = model.backbone.layers[L].mixer.gate
+        total += sum(p.numel() for p in g.parameters())
+    print(f"  >> total router params across {len(MOE_LAYERS)} MoE layers: {total:,}")
+    print(f"  >> recommended: modules_to_save=['gate'] (full-finetune; param count is trivial)")
+    print(f"  >> alt: PEFT target_parameters=['mixer.gate.weight'] for LoRA on the gate")
+
 # verify hook output shape with a tiny forward
 captured = {}
 def hook(module, inp, out):

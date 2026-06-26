@@ -1,4 +1,12 @@
 .DS_Store
 *.lock
-outputs/logs/*.npz
+outputs/logs/**/*.npz
 __pycache__/
+.env
+
+# training data (large, lives on pod volume)
+scripts/ws2_bundle/WONDERLAND_FINAL_MASTER.jsonl
+
+# ephemeral pod/run artifacts
+outputs/opbdh_runs/
+outputs/run.log
