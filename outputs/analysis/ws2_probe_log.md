@@ -124,7 +124,7 @@ seed=42 where max_load monotonically locked in above 0.8 after step 25.
 
 ---
 
-## Next to try
+## Next to try — ⚠️ SUPERSEDED (see "RunPod session 2026-06-26" below)
 
 **RunPod status (2026-06-25):** EU-FR-1 datacenter had a widespread machine outage —
 5 consecutive pods stuck at "Rented by User" indefinitely, ports never appeared.
@@ -140,3 +140,59 @@ Retry command: `OPBDH_RUNPOD_GPU_TYPES="NVIDIA H200" ~/.opbdh-venv/bin/opbdh lau
 | 2        | 1e-5 | 0.50     | balance term dominates; stable but forced-balanced Family D |
 | 3        | 1e-5 | 1.00     | maximum balance pressure; boring but safe full run |
 | 4        | 1e-6 | 0.05     | slower updates; does oscillation period lengthen? |
+
+---
+
+## RunPod session (2026-06-26, opbdh run 20260625-213516) — ⚠️ FALSE GREEN, ALL VOID
+
+The retry command above DID run (pod `xe0nbeg1wsj6pg`, NVIDIA H200, EU-FR-1 came
+back). The full 8-probe grid (aux∈{1.0,0.5,0.1,0.05} × lr∈{1e-5,1e-6}, seed=123,
+balance_cap=0.80, 100 steps) executed and the launcher reported **"8/8 STABLE,
+exit code 0."**
+
+**That result is entirely void. All 8 probes crashed at step 0** with:
+
+```
+RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn
+```
+
+(8 identical tracebacks in `outputs/opbdh_runs/20260625-213516/logs/stderr.log`;
+zero training steps ran; no `router_state.pt` produced. Timing corroborates:
+whole "sweep" took ~8 min instead of ~5 h.)
+
+**Why it reported STABLE anyway:** `launch_ws2_probe.sh` scored STABLE on mere
+*absence of a COLLAPSE file* — it never checked the python exit code or for
+`router_state.pt` — and with `set -uo pipefail` (no `-e`) the script exited 0.
+
+**Crash mechanism (high confidence):** the `torch/utils/checkpoint.py:85`
+warning in stderr shows *reentrant gradient checkpointing* was active inside the
+model despite `gradient_checkpointing=False` in TrainingArguments. With only
+`gate.weight` trainable (a parameter, not a checkpointed *input*), the
+checkpointed forward runs detached → both `lm` and the hook-computed `aux` lose
+their grad_fn. Secondary suspect (unconfirmed): opbdh's bootstrap installed
+transformers 5.8.1 before the launcher's 4.57.3 pin.
+
+**Note this failure is pod-specific** — the identical recipe completed 100/100
+steps on Kaggle the day before (Run 4 above). Environment delta, not logic bug.
+
+**Also:** the self-stop did not fire (`no creds in /root/.podenv`) and
+`keep_pod_on_success: true` — the pod was left RUNNING at 2026-06-26 01:44 UTC.
+Verify it was killed and check RunPod spend.
+
+---
+
+## Fixes applied 2026-07-31 (see git diff of this date)
+
+1. `train_router.py`: explicit `model.gradient_checkpointing_disable()` +
+   `model.enable_input_require_grads()` after load, and a **preflight** (one real
+   forward, assert `loss.requires_grad` + transformers 4.x) before `trainer.train()`.
+2. `launch_ws2_probe.sh` (both copies) + `ws2_pod.sh`: STABLE now requires
+   exit 0 AND `router_state.pt` AND no COLLAPSE; crashes propagate a nonzero
+   exit to opbdh.
+3. `ws2_pod.sh`: added missing `--seed 123` to probe AND full run (default 42 is
+   the seed that reproducibly collapses at step ~25).
+4. `train_router.py`: `--balance-cap` default 0.08 → 0.80 (baseline max_load is
+   ~0.55; old default false-COLLAPSEd instantly).
+
+**Actual next step: re-run the same 8-probe grid — it has never truly run on a
+pod.** The 2026-06-25 priority table above remains the right grid.

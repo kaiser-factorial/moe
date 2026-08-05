@@ -4,7 +4,12 @@
 # logs + metrics to /workspace/ws2/probes/, then self-STOPs the pod.
 # Results synced back to outputs/opbdh_runs/ by opbdh.
 set -uo pipefail
+SWEEP_FAIL=0   # set to 1 if any probe crashes or produces no artifact
 echo "=== launch_ws2_probe.sh: staging ==="
+
+# Remove PEP 668 externally-managed restriction so pip works on this disposable pod
+# (2026-07-31: ported from ws2_bundle copy — the two files had drifted)
+find /usr/lib/python3* /usr/local/lib/python3* -name EXTERNALLY-MANAGED -delete 2>/dev/null || true
 
 ls /workspace/hf/hub | head -3 || { echo "FATAL: /workspace/hf not found — wrong volume?"; exit 1; }
 
@@ -53,8 +58,18 @@ for AUX in 1.0 0.5 0.1 0.05; do
       --balance-cap 0.80 \
       --seed 123 \
       --max-len 2048
-    if [ -f "$PDIR/COLLAPSE" ]; then
+    RC=$?
+    # 2026-07-31 fix: the old test scored STABLE on mere absence of a COLLAPSE
+    # file, so 8/8 step-0 crashes on 2026-06-26 read as "8/8 STABLE". STABLE now
+    # requires exit 0 AND router_state.pt AND no COLLAPSE sentinel.
+    if [ "$RC" -ne 0 ]; then
+      echo "  CRASHED — $TAG exited $RC (see stderr); NOT a candidate"
+      SWEEP_FAIL=1
+    elif [ -f "$PDIR/COLLAPSE" ]; then
       echo "  COLLAPSED — $(cat $PDIR/COLLAPSE)"
+    elif [ ! -f "$PDIR/router_state.pt" ]; then
+      echo "  NO-ARTIFACT — $TAG exited 0 but no router_state.pt; NOT a candidate"
+      SWEEP_FAIL=1
     else
       echo "  STABLE — $TAG is a candidate for full run"
     fi
@@ -65,7 +80,9 @@ echo "=== probe sweep complete $(date -Is) ==="
 echo "results in $PROBES:"
 for d in "$PROBES"/*/; do
   tag=$(basename "$d")
-  if [ -f "$d/COLLAPSE" ]; then status="COLLAPSE"; else status="STABLE"; fi
+  if [ -f "$d/COLLAPSE" ]; then status="COLLAPSE"
+  elif [ -f "$d/router_state.pt" ]; then status="STABLE"
+  else status="CRASH/NO-ARTIFACT"; fi
   echo "  $tag → $status"
 done
 
@@ -79,4 +96,6 @@ if [ -n "$PODID" ] && [ -n "$PODKEY" ]; then
 else
   echo "no creds in /root/.podenv — pod stays up for manual inspection"
 fi
-echo "=== launch_ws2_probe.sh done ==="
+echo "=== launch_ws2_probe.sh done (SWEEP_FAIL=$SWEEP_FAIL) ==="
+# Propagate failure so opbdh's "exit code 0" actually means the sweep ran.
+exit "$SWEEP_FAIL"

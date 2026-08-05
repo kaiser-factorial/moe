@@ -202,6 +202,38 @@ patterns *and* separating the kill and launch into distinct SSH invocations.
 
 ---
 
+## 8. The false-green probe sweep (WS2, found 2026-07-31)
+
+- **Error 28 — reentrant checkpointing detached the training graph.** The
+  2026-06-26 opbdh probe sweep (run `20260625-213516`, H200) crashed all 8
+  probes at step 0 with `RuntimeError: element 0 of tensors does not require
+  grad`. The `torch/utils/checkpoint.py:85` warning shows *reentrant* gradient
+  checkpointing was active inside the model despite
+  `gradient_checkpointing=False` in TrainingArguments; with only `gate.weight`
+  trainable (a parameter, not a checkpointed *input*), the forward ran detached
+  and both loss terms lost their grad_fn. Pod-specific — the identical recipe
+  completed 100 steps on Kaggle the day before. **Fix:** explicit
+  `model.gradient_checkpointing_disable()` + `model.enable_input_require_grads()`
+  after load, plus a preflight forward that asserts `loss.requires_grad` (and
+  transformers 4.x — opbdh's bootstrap installs 5.8.1 before the 4.57.3 pin)
+  before `trainer.train()`.
+- **Error 29 — launcher scored crashes as STABLE.** `launch_ws2_probe.sh`
+  declared a probe STABLE on mere absence of a `COLLAPSE` file, never checking
+  the python exit code or for `router_state.pt`; with `set -uo pipefail` (no
+  `-e`) the script exited 0 and opbdh reported "8/8 STABLE, exit code 0" for a
+  sweep in which zero training steps ran. Worse, `ws2_pod.sh` used the same test
+  to *select* the full-run config — a step-0 crash would have won the probe and
+  launched a ~12 h full run on a config that never executed a gradient step.
+  **Fix (both launchers + ws2_pod.sh):** STABLE requires exit 0 AND
+  `router_state.pt` AND no `COLLAPSE`; failures propagate a nonzero exit.
+  Also fixed while in there: `ws2_pod.sh` omitted `--seed` (default 42 is the
+  seed that reproducibly collapses at step ~25 — probes validate seed=123), and
+  `train_router.py`'s `--balance-cap` default of 0.08 sat far below the model's
+  natural ~0.55 baseline max_load (instant false COLLAPSE for anyone running
+  with defaults); now 0.80.
+
+---
+
 ## Full catalog
 
 | # | Area | One-line summary | Status |
@@ -233,6 +265,8 @@ patterns *and* separating the kill and launch into distinct SSH invocations.
 | 25 | Env | patch_ptxas crashes on release triton | neutered on Hopper |
 | 26 | Ops | **secret scanner kills key-carrying pods** | key in post-boot file |
 | 27 | Ops | opbdh launcher misconfigured | drive REST API directly |
+| 28 | Bug | reentrant ckpt detached graph → 8/8 step-0 crashes | disable ckpt + input-grads + preflight |
+| 29 | Ops | **launcher scored crashes as STABLE (false green)** | verdict = exit 0 + artifact + no COLLAPSE |
 
 ---
 
@@ -250,3 +284,8 @@ patterns *and* separating the kill and launch into distinct SSH invocations.
    dumping the actual KV/SSM state after prefill found it in one shot.
 5. **Bracket your pkill patterns *and* split the SSH calls.** Five separate
    incidents say so.
+6. **A green light must be earned, not defaulted to.** Error 29's launcher
+   treated "no COLLAPSE file" as success, so a crash that produced *nothing*
+   read as STABLE. Success checks must require positive evidence (exit 0 AND
+   the artifact exists), never the absence of a failure marker — and a cheap
+   preflight assert before hours of GPU beats a perfect postmortem after.

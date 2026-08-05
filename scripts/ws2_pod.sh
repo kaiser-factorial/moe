@@ -25,6 +25,8 @@ echo "=== WS2 pod start $(date -Is) ==="
 
 export HF_HOME=/workspace/hf HUGGINGFACE_HUB_CACHE=/workspace/hf/hub PYTHONUNBUFFERED=1
 export PIP_BREAK_SYSTEM_PACKAGES=1
+# Remove PEP 668 externally-managed restriction (ubuntu2404 image; see debug/runpod_ws1_setup)
+find /usr/lib/python3* /usr/local/lib/python3* -name EXTERNALLY-MANAGED -delete 2>/dev/null || true
 
 echo "--- verify preinstalled torch (image ships release 2.8.0) ---"
 python3 -c "import torch; print('torch', torch.__version__, '| cuda', torch.cuda.is_available())" \
@@ -94,9 +96,22 @@ for AUX in 1.0 0.5 0.1 0.05; do
       --lr "$LR" --aux-coef "$AUX" \
       --max-steps 100 \
       --balance-cap 0.80 \
+      --seed 123 \
       --max-len 2048
-    if [ -f "$PDIR/COLLAPSE" ]; then
+    RC=$?
+    # 2026-07-31 fixes:
+    #  - --seed 123 was MISSING here (train_router.py defaults to 42 — the seed
+    #    that reproducibly collapses at step ~25; see ws2_probe_log.md).
+    #  - the old test selected a config on mere absence of a COLLAPSE file, so a
+    #    step-0 crash would have won the probe and launched a 12h full run on it
+    #    (exactly what the 2026-06-26 opbdh sweep logs show). A candidate now
+    #    requires exit 0 AND router_state.pt AND no COLLAPSE sentinel.
+    if [ "$RC" -ne 0 ]; then
+      echo "  probe CRASHED (aux=$AUX lr=$LR) exit=$RC — NOT a candidate"
+    elif [ -f "$PDIR/COLLAPSE" ]; then
       echo "  probe COLLAPSED (aux=$AUX lr=$LR) — $(cat $PDIR/COLLAPSE)"
+    elif [ ! -f "$PDIR/router_state.pt" ]; then
+      echo "  probe NO-ARTIFACT (aux=$AUX lr=$LR) — exited 0 but no router_state.pt; NOT a candidate"
     else
       echo "  probe STABLE (aux=$AUX lr=$LR)"
       CHOSEN_AUX=$AUX
@@ -107,7 +122,7 @@ for AUX in 1.0 0.5 0.1 0.05; do
 done
 
 if [ -z "$CHOSEN_AUX" ]; then
-  echo "FATAL: all probes (lr∈{1e-5,1e-6} × aux∈{1.0,0.5,0.1,0.05}) collapsed"
+  echo "FATAL: no stable probe (lr∈{1e-5,1e-6} × aux∈{1.0,0.5,0.1,0.05} all collapsed/crashed)"
   echo "WS2_ALL_COLLAPSED $(date -Is)" > $ROOT/DONE
   sync
   _self_stop; exit 1
@@ -116,6 +131,10 @@ fi
 echo "=== selected config: aux_coef=$CHOSEN_AUX lr=$CHOSEN_LR ==="
 
 # ─── full training run ───
+# --seed 123 (2026-07-31): the probes validate seed=123 data order; running the
+# full epoch at the default seed=42 (known to tip at step ~25) would be an
+# unvalidated config. Deliberate deviation from the seed-42 adapter recipe —
+# note it in the report's Family-D methods.
 FULL_DIR="$ROOT/familyD"
 echo "--- full run: 1 epoch, aux=$CHOSEN_AUX lr=$CHOSEN_LR ---"
 python3 "$ROOT/train_router.py" \
@@ -125,6 +144,7 @@ python3 "$ROOT/train_router.py" \
   --lr "$CHOSEN_LR" --aux-coef "$CHOSEN_AUX" \
   --epochs 1 \
   --balance-cap 0.82 \
+  --seed 123 \
   --max-len 4096
 TRAIN_EXIT=$?
 echo "full run exit: $TRAIN_EXIT"

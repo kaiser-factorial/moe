@@ -163,7 +163,10 @@ def main():
     ap.add_argument("--grad-accum", type=int, default=8)
     ap.add_argument("--warmup-ratio", type=float, default=0.05)
     ap.add_argument("--aux-coef", type=float, default=0.01)
-    ap.add_argument("--balance-cap", type=float, default=0.08)  # abort if 1 expert >8% of tokens
+    ap.add_argument("--balance-cap", type=float, default=0.80)
+    # ^ 2026-07-31: default was 0.08, but this model's NATURAL baseline max_load is
+    #   ~0.55 (see ws2_probe_log.md) — the old default false-COLLAPSEd instantly.
+    #   Every launcher already overrides to 0.80; default now matches.
     ap.add_argument("--max-len", type=int, default=4096)
     ap.add_argument("--attn-impl", default="eager")            # sdpa unsupported for NemotronH in transformers>=4.50
     ap.add_argument("--seed", type=int, default=42)
@@ -179,6 +182,18 @@ def main():
     model.config.use_cache = False
     # gradient checkpointing disabled: H200 has 141GB VRAM, plenty for activations;
     # use_reentrant=False conflicts with gradient_accumulation_steps>1 on this model
+    #
+    # 2026-07-31 fix (opbdh run 20260625-213516): despite gradient_checkpointing=False
+    # in TrainingArguments, REENTRANT checkpointing was active inside the model on the
+    # pod (torch/utils/checkpoint.py:85 warning fired), which ran the forward detached
+    # and killed both loss terms -> "RuntimeError: element 0 of tensors does not
+    # require grad". Belt: explicitly disable any checkpointing the remote code turned
+    # on. Suspenders: enable_input_require_grads() keeps the graph alive through any
+    # checkpointed/no-grad region (the standard fix when only non-input params train).
+    if hasattr(model, "gradient_checkpointing_disable"):
+        model.gradient_checkpointing_disable()
+    if hasattr(model, "enable_input_require_grads"):
+        model.enable_input_require_grads()
 
     # ── freeze everything, unfreeze ONLY the 23 gate.weight tensors ──
     for p in model.parameters(): p.requires_grad_(False)
@@ -192,6 +207,28 @@ def main():
     hooks = BalanceHooks(model)
     ds = WonderlandSFT(args.data, tok, max_len=args.max_len)
     print(f"dataset: {len(ds)} examples", flush=True)
+
+    # ── preflight: prove the graph is alive BEFORE burning GPU-hours ──
+    # (2026-06-26 pod sweep crashed 8/8 at step 0 while the launcher said STABLE.
+    #  This runs one real forward and asserts loss.requires_grad. ~30s, priceless.)
+    import transformers as _tf
+    print(f"preflight: transformers {_tf.__version__}", flush=True)
+    assert _tf.__version__.startswith("4."), (
+        f"transformers {_tf.__version__} is 5.x — incompatible with this model "
+        "(postmortem error 9). The ==4.57.3 pin did not survive bootstrap.")
+    _collate = PadCollator(tok.pad_token_id)
+    _batch = {k: v.to(next(model.parameters()).device)
+              for k, v in _collate([ds[0]]).items()}
+    _out = model(**_batch)
+    _aux, _ = hooks.pop()
+    _loss = _out.loss + args.aux_coef * _aux
+    assert _loss.requires_grad and _loss.grad_fn is not None, (
+        "preflight FAILED: loss has no grad_fn — forward graph is detached "
+        "(checkpointing re-enabled? version churn?). Aborting before training.")
+    print(f"preflight OK: loss.requires_grad=True (lm={float(_out.loss):.4f}) "
+          "— graph reaches gate.weight", flush=True)
+    del _out, _aux, _loss, _batch
+    torch.cuda.empty_cache()
 
     targs = TrainingArguments(
         output_dir=args.out_dir,

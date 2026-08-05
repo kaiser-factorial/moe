@@ -1,13 +1,23 @@
 # HANDOFF — NemoH MoE Routing Project
 
 Start here next session. Repo: `git@github.com:kaiser-factorial/moe.git`
-(everything below is committed & pushed; clean tree).
+*(updated 2026-07-31 — earlier version pre-dated WS1/WS2 and is superseded)*
 
 ## Status in one line
 
 Phases 1, 2, and the Phase-3 **pilot** are COMPLETE; 9 offline analyses done and
-consolidated. All remaining work needs a GPU (RunPod credits exhausted last
-session). Nothing is mid-flight — safe to pick up cold.
+consolidated. The live front is the **family comparison** (WS1: Families B/C
+divergence; WS2: Family D router training — see
+`report/family_comparison_plan.md`). ⚠️ **The last pod run (2026-06-26) was a
+FALSE GREEN** — the WS2 probe sweep reported "8/8 STABLE" but all 8 probes
+crashed at step 0; the grid has never truly run on a pod. Fixes landed
+2026-07-31; full story in `outputs/analysis/ws2_probe_log.md`.
+
+## Check first (time-sensitive)
+
+- Pod `xe0nbeg1wsj6pg` (H200, EU-FR-1) was left RUNNING at 2026-06-26 01:44 UTC
+  (self-stop no-op'd: no creds in `/root/.podenv`; `keep_pod_on_success: true`).
+  Verify it's dead and check RunPod spend before anything else.
 
 ## Read these first (in order)
 
@@ -45,8 +55,18 @@ session). Nothing is mid-flight — safe to pick up cold.
    real excess only ~0.12. "Coherent pathway" was downgraded to "weak but real";
    the firm finding is within-layer expert *teams*.
 
-## Next actions (all GPU-gated) — ranked
+## Next actions (all GPU-gated) — ranked (updated 2026-07-31)
 
+0. **WS2: re-run the 8-probe router grid, then the Family-D full run.** The
+   2026-06-26 sweep is void (see above). Fixes are in: `train_router.py` now has
+   a preflight that asserts `loss.requires_grad` + transformers 4.x before
+   training; the launchers now require exit 0 + `router_state.pt` for STABLE;
+   `ws2_pod.sh` now passes `--seed 123` (default 42 reproducibly collapses at
+   step ~25). Grid: aux∈{1.0,0.5,0.1,0.05} × lr∈{1e-5,1e-6}, seed=123,
+   balance_cap=0.80, 100 steps. Select on `max_load`, NOT `lm` (a collapsed
+   router has *low* lm). Then 1-epoch full run → `router_state.pt` → WS1-style
+   divergence + CoT eval on D (fills report §5.5). Also still pending: WS1
+   captures on Families B & C (§5.3) — launched 2026-06-23, no results in tree.
 1. **Phase-3 Stage-1 steering sweep** — highest value; pilot already passed.
    Vectors for all 16 sites are banked (`outputs/analysis/steering/vectors.npz`,
    local + on volume), so **no re-extraction needed**. Revised grid:
@@ -93,6 +113,13 @@ session). Nothing is mid-flight — safe to pick up cold.
 
 ## Loose ends / caveats to remember
 
+- **Adapter identity** (`report/adapter_registry.md`): Phase 2/3 routing results
+  = Family A (`brick-factorial/nemotron-lora-symbolic-reasoning`); the
+  `expert_anal_lora.md` 6/14 CoT pass-rate = Family B (routed experts trained).
+  Two different `checkpoint-1188`s — never cite as one model.
+- **opbdh's bootstrap installs transformers 5.8.1** before the launcher's
+  4.57.3 pin — the preflight in `train_router.py` now asserts 4.x at runtime,
+  but keep it in mind for any other script run via opbdh.
 - `report/phase1_DYFA.md` is the OLD per-question DYFA (Q1-Q2 only, no figures);
   `report/DYFA.md` is the new complete one. Keep DYFA.md; phase1_DYFA.md is
   superseded but left for provenance.
