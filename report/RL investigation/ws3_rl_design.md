@@ -1,11 +1,17 @@
 # WS3 — RL vs SFT: does the training objective decide whether fine-tuning re-routes?
 
-*Design doc **v2**, revised 2026-08-05 (v1 same day). Status: PROPOSED (no runs).
+*Design doc **v3**, revised 2026-08-06 (v1–v2 2026-08-05). Status: PROPOSED (no
+Nemotron runs; Qwen substrate validated).
 **v2 change:** substrate pivoted from WONDERLAND to the **octave-rl environment**
 (`~/Projects/repo-teacher/lecture-4-prime-intellect/octave_RL`), and the router-unfrozen arms
 promoted from "extension" to budget-contingent mainline. Rationale in §3a.
+**v3 change:** records the successful Qwen/Sandbox substrate run, resolves the pin/test/reward
+facts against the exact run, narrows the F→R causal claim, pre-registers competence matching and
+seed requirements, and specifies the separate high-memory compute gate.
 Infra claims verified against `PrimeIntellect-ai/prime-rl` @ `738eb50` (main, 2026-08-05) and Prime
-Intellect docs the same day — this platform moves fast; re-verify before launch.*
+Intellect docs the same day; the Octave substrate was then exercised at exact pin
+`44539229436a23e624b0f39826014a4e58a703be` on 2026-08-06. This platform moves fast; re-verify
+before launch.*
 
 ## 1. Question
 
@@ -50,12 +56,14 @@ checkpoint converter (`converting_nemotron_h.py`) that renames HF `…mixer.gate
 trainer/inference parity has been checked upstream. `uv run sft` and `uv run rl` share the same
 trainer, modeling code, and LoRA implementation → **all three arms run in one stack**.
 
-⚠️ **Version-pin tension (new in v2):** the octave project validated against specific
-prime-rl/verifiers revisions (its handoff warns against drifting). WS3 needs a prime-rl revision
-with nemotron_h custom modeling. **First infra task: check whether octave's pinned revisions
-include nemotron_h; if not, bump to the oldest revision that does and re-run the octave test suite
-(37 tests) + a 20-task smoke eval against the bumped pin before anything else.** Record the final
-pins in `run_config.json`.
+**Version-pin tension (resolved for the current candidate pin in v3):** the Octave project's
+successfully exercised prime-rl pin is
+`44539229436a23e624b0f39826014a4e58a703be`; it already contains the
+`src/prime_rl/trainer/models/nemotron_h/` implementation, router-replay control, explicit LoRA
+target/module-save handling, and routing-confidence telemetry needed here. The Octave repository
+suite is now **60 tests**, not 37. This removes the known need to bump merely to obtain NemotronH,
+but it does not waive G0: freeze the exact prime-rl/verifiers/environment pins in
+`run_config.json`, rerun the suite, and prove the Nemotron adapter round-trip on the launch image.
 
 **2c. ⚠️ Router replay exists in `prime-rl` — exactly the failure mode we feared — and is OFF by
 default.** `trainer.enable_router_replay` (default `False`,
@@ -109,12 +117,21 @@ therefore almost certainly a quantized serving build. All NemoH work already use
 rounding of sigmoid gate scores can flip near-tie top-6 selections, which is noise injected
 exactly into our measurand.
 
-**2h. Sandbox dependency (new in v2).** Octave scoring runs in Prime Sandboxes — a *separately
-billed, separately failing* service (the 2026-07-30 octave run lost its post-transition eval to a
-sandbox `Payment required` while GPU compute was healthy). Consequences: sandbox smoke test
-**before** provisioning any GPU pod; sandbox spend is a per-rollout cost the RL/RFT arms pay and
-the SFT arm doesn't (budget line, not a validity issue); the octave controller's payment-rejection
-fail-fast stays enabled.
+**2h. Sandbox dependency (updated in v3).** Octave scoring runs in Prime Sandboxes — a separate
+service and failure domain (the 2026-07-30 octave run lost its post-transition eval to a sandbox
+`Payment required` while GPU compute was healthy). On 2026-08-06 the previously stalled service
+recovered: the exact scorer passed 6/6 hidden cases from the workstation and 6/6 twice from a
+DataCrunch-backed Prime pod, followed by two completed Qwen optimizer steps with zero rollout
+infrastructure errors. The earlier `PROVISIONING` stalls were therefore transient Prime
+scheduler/capacity behavior, not evidence of an Octave-specific incompatibility. Consequences
+remain: sandbox smoke **before** GPU provisioning, then the same pod-to-Sandbox smoke before a
+paid chunk; sandbox usage is a per-rollout budget line for R/F but not S; retain payment-rejection
+fail-fast and explicit zero-resource cleanup.
+
+That Qwen run is an operational substrate proof, not a Nemotron-quality result: its final
+mismatch KL was 0.0176, just above the Octave project's 0.015 monitoring line. For WS3, preserve
+the short-probe-first rule and make trainer/vLLM KL parity a blocking launch metric rather than a
+post-hoc caveat.
 
 ## 3. Data & environment: octave-rl (v2 pivot)
 
@@ -130,8 +147,11 @@ fail-fast stays enabled.
   families × 3 levels × 500 tasks, 6 hidden cases each, **9,000/9,000 reference cases pass** in
   pinned GNU Octave 10.2.0; constant-output hack audited; graduated reward. Deletes the entire
   "package WONDERLAND as a verifiers env" workstream.
-- **Graduated reward** (`case_fraction`, weight 1.0 + small execution bonus) gives denser RL
-  signal than binary boxed-match.
+- **Graduated, host-computed reward** is exactly
+  `raw_case_fraction * attempt_multiplier`; structured execution is trace-only and carries no
+  bonus. Under WS3's single-turn configuration the multiplier is 1.0, so reward is the raw hidden
+  case fraction. This gives denser RL signal than binary boxed-match without rewarding
+  candidate-controlled protocol output.
 - What is lost: direct dataset parity with Phase 2 — addressed in §3d; it costs one gate
   reinterpretation (G2) and buys the domain-generalization claim (§1.2).
 
@@ -169,8 +189,10 @@ the curriculum:
   format-matched to what the rubric rewards.
 - **Arm F (RFT) filter = full pass only** (`case_fraction == 1.0`). Training on partially-correct
   code would supervise on wrong answers. Note the resulting inherent asymmetry: R's gradient sees
-  partial credit, F's data doesn't — that is part of "objective structure," document it, don't
-  patch it.
+  partial credit and an evolving policy distribution, while F sees a fixed, base-generated,
+  full-pass subset. This is part of each practical training system, but it prevents F→R from
+  cleanly identifying objective alone. Keep the main arms ecologically honest and add the frozen
+  matched-batch diagnostic in §4 rather than disguising the confound.
 - WONDERLAND is retained as a **contingency control** (§7 G2): a small WONDERLAND-SFT run in the
   prime-rl stack, only if S's routing behavior diverges qualitatively from Family A's.
 
@@ -195,9 +217,22 @@ surprising), W&B on.
 |---|---|---|---|
 | **S** (SFT-gold) | NLL, `uv run sft` | reference Octave solutions | supervised regime, in-domain baseline + Phase-2 generalization test |
 | **F** (RFT) | NLL, `uv run sft` | model's own *full-pass* samples (best-of-n from base, verifier-filtered) | self-generated data distribution, supervised objective |
-| **R** (RL) | GRPO-family policy gradient (`uv run rl`, default DPPO loss + KL, replay OFF) | on-policy rollouts, graduated `case_fraction` reward | policy-gradient objective on top of F's data shift |
+| **R** (RL) | GRPO-family policy gradient (`uv run rl`, default DPPO loss + KL, replay OFF) | evolving on-policy rollouts, graduated `case_fraction` reward | deployed RL system: objective + endogenous data together |
 
-S→F difference = data-distribution effect. F→R difference = objective effect.
+S→F primarily measures the fixed supervision-data shift. F→R is the scientifically useful
+comparison of two practical self-generated-data systems, but **does not isolate objective**:
+F uses fixed base-policy full passes while R changes its rollout distribution during training and
+learns from partial credit. Phrase the headline accordingly unless the diagnostic below supports
+a narrower mechanism claim.
+
+**Frozen matched-batch gradient diagnostic (cheap, not a fourth arm).** At base and at one
+matched-competence checkpoint, freeze one grouped rollout batch containing varied verifier
+rewards. Without stepping the optimizer, compute (a) the normal replay-off GRPO/DPPO gradient and
+(b) the NLL gradient on the full-pass members of that exact batch. Report gradient cosine,
+per-layer norm allocation, and router-adjacent versus non-router LoRA allocation. This does not
+erase the objectives' inherent sample-selection difference, but it conditions the diagnostic on
+one source batch and prevents a purely distributional F→R result from being narrated as a clean
+loss-function effect.
 
 **Matching rule (the KL-asymmetry problem).** RL's KL-to-reference term is an anchor SFT doesn't
 have, so "routing moved less per step" is uninterpretable. Primary comparison at **matched
@@ -206,6 +241,17 @@ held-out improvement (case_fraction and full-solve rate; e.g. base+10pts, base+2
 routing there. Report per-step and per-weight-displacement (‖ΔW_eff‖ = ‖BA‖·α/r summed over
 modules) curves as secondary views. Log `kl_tau`, entropy, reward; don't tune per-arm beyond what
 stability requires; document any deviation.
+
+Pre-register the selection before training: primary target = held-out mean raw case-fraction gain
+at base+10 and base+20 percentage points; an eligible checkpoint must be within ±2 points on that
+metric and within ±5 points on full-solve-rate gain. Choose the smallest absolute primary-target
+error, breaking ties by the earlier checkpoint. Do not interpolate or choose by routing outcome.
+If an arm never enters the window, report curves and state that no matched-point comparison was
+available.
+
+Use one discovery seed to clear gates, then run **at least two additional pre-registered seeds for
+the core F/R comparison** before making a stochastic router-drift claim. If budget permits only
+one seed per arm, label WS3 a pilot; do not repeat only whichever result looks surprising.
 
 ## 5. Gate-trainable arms (budget-contingent mainline in v2)
 
@@ -225,8 +271,11 @@ sensitivity in mind. Register every WS3 adapter in `adapter_registry.md` **at cr
 Family E = A-targets via prime-rl on octave; E+g = E + full router).
 
 Optional cheap control if Arm R shows routing movement: **R-replay** (Arm R +
-`enable_router_replay=true`) — movement vanishing under replay ⇒ selection-driven drift;
-persisting ⇒ score/weight-driven. Decide after the core readout.
+`enable_router_replay=true`). Treat it as exploratory, not a clean causal decomposition: replay
+changes expert selection *and* the trainer/inference importance-ratio mechanics. Movement
+vanishing under replay is consistent with selection-mediated drift; persisting movement is
+consistent with score/weight-mediated drift, but neither implication is exclusive. Decide after
+the core readout.
 
 ## 6. Measurement
 
@@ -243,7 +292,9 @@ kit). WS3 additions:
    confound designed out (§3a) it is interpretable.
 2. **Training-time routing telemetry, free**: the prime-rl trainer computes a routing-confidence
    statistic (selected-probability mass) in the MoE forward — surface it in W&B for per-arm drift
-   *during* training, not just at checkpoints.
+   *during* training, not just at checkpoints. This measures confidence, not expert identity or
+   routing divergence; it is a health/trajectory signal and cannot replace capture-based JSD,
+   specialist survival, or the per-layer routing comparison.
 3. For +g arms additionally: direct router-weight delta (Δgate norms per layer/expert), routing
    change decomposition (how much survives with the base router swapped back in = weight-driven
    share).
@@ -251,9 +302,12 @@ kit). WS3 additions:
 
 ## 7. Gates (in order; each blocks the next)
 
-- **G-1 — pins & sandbox (new).** Resolve the prime-rl/verifiers pin (§2b tension); octave test
-  suite (37) green on the final pin; `prime sandbox create` smoke test + billing check;
-  `prime pods list` clean.
+- **G-1 — pins, compute & sandbox (updated).** Start from the exercised prime-rl pin in §2b,
+  freeze all exact revisions, and keep the Octave suite (currently 60 tests) green. Re-run a fresh
+  one-container Sandbox execution smoke immediately before provisioning; after provisioning,
+  repeat the exact pod-to-Sandbox scorer before any optimizer step. Record the GPU offer/provider,
+  rate, disk, dollar guard, and final zero-pod/zero-Sandbox audit. A prior Qwen proof does not
+  substitute for this launch-time gate.
 - **G0 — stack round-trip.** ~20-step throwaway LoRA in prime-rl; export; safetensors-header
   audit (Family-A key pattern, expected module count, no `experts`/router keys); load via PEFT on
   the HF checkpoint; logit parity vs prime-rl eval on ~10 prompts; `capture_routing.py`
@@ -266,6 +320,10 @@ kit). WS3 additions:
   specialists survive). If it clearly doesn't: run the small WONDERLAND-SFT control in this stack
   to split domain vs stack **before** interpreting R. Either control outcome is informative
   (domain-dependence of Phase 2 is a finding); an uninvestigated ambiguity is not.
+- **G2.5 — attribution audit.** Run the frozen matched-batch gradient diagnostic (§4), lock the
+  matched-competence windows/tie-break, and confirm the pre-registered confirmatory seeds are
+  affordable. If not, retain the ecological F↔R comparison but remove objective-only causal
+  language and label the run a pilot.
 - **G3 — RL health.** Reward climbs; entropy doesn't collapse; no expert-collapse signature
   (`max_load`-style stats, not just loss); sandbox error rate ~0 in trace rows (the 324/326-error
   batch is the cautionary tale — exclude any such partial batch from everything).
@@ -273,13 +331,19 @@ kit). WS3 additions:
 
 ## 8. Infra & cost sketch (rough, verify at launch)
 
-- **SFT/RFT arms**: trainer only, 1× H200 (BF16 weights ≈ 63 GB; LoRA optimizer small;
-  activation checkpointing on). RFT adds one batched best-of-n sampling pass (vLLM, same pod,
-  sequential) + sandbox scoring for the filter.
+- **No reusable Qwen GPUs.** The successful 2026-08-06 Qwen pod had exactly two GPUs—one trainer,
+  one inference—and was terminated after retrieval. WS3 therefore needs a separately authorized
+  pod; there are no idle GPUs to repurpose.
+- **SFT/RFT arms**: trainer only, 1× H200 preferred (BF16 weights ≈ 60–63 GB; LoRA optimizer
+  small; activation checkpointing on). RFT adds one batched best-of-n sampling pass (vLLM, same
+  pod, sequential) + sandbox scoring for the filter.
 - **RL arms**: trainer + vLLM concurrently → 2 GPUs (`--deployment.num-train-gpus 1
-  --num-infer-gpus 1`), H200×2 preferred. Single-turn 1,536-token rollouts are far cheaper than
-  WONDERLAND CoT rollouts would have been; sandbox cost per rollout is new. Prime marketplace or
-  RunPod both fine; the EU-FR-1 volume (`gdqj7o63ik`) pins RunPod work to that DC.
+  --num-infer-gpus 1`), **H200×2 preferred**. The proven 2×48-GB RTX envelope is not viable for
+  independent 30B BF16 trainer and inference copies. H100 80-GB may be a tight probe target, but
+  leaves materially less room for activations, KV cache, and runtime variance; do not commit a
+  full arm before its concurrency/memory gate passes. Single-turn 1,536-token rollouts are far
+  cheaper than WONDERLAND CoT rollouts would have been; sandbox cost per rollout is new. Prime
+  marketplace or RunPod both fine; the EU-FR-1 volume (`gdqj7o63ik`) pins RunPod work to that DC.
 - Very rough per-arm: S/F ≈ $50–100 (1× H200, hours not days at LoRA scale); R ≈ $150–400
   probe-first (1–2 h probe before any full run, house rule); each +g arm ≈ its frozen
   counterpart + margin. Sandbox budget separate — prepay/verify (§2h).
@@ -294,8 +358,9 @@ kit). WS3 additions:
   documented.
 - **Domain–stack confound if G2 trips** — handled by the WONDERLAND-SFT contingency control, run
   only if needed.
-- **One model, one domain, one seed** per arm in the mainline; surprises get a seed-repeat before
-  being believed.
+- **One model and one domain**, plus limited seeds. The discovery run may use one seed, but the
+  core F/R claim requires the pre-registered confirmatory seeds in §4. One-seed results are pilot
+  evidence only; selectively repeating surprises is not adequate.
 - **Trainer/vLLM routing mismatch** during RL (async off-policy tolerates; DPPO masks ratios) —
   measurements all run in one stack (HF + patches) identically across arms, so cross-arm
   comparisons stay internally consistent.
@@ -314,3 +379,9 @@ WS3's outcome. Report home: new §5.6 ("Does the objective matter?") + this doc 
 "Neither objective re-routes: routing stability is a property of the model, not the loss" /
 "RL moves routing only through the data distribution (F ≈ R ≫ S)" / (+g) "Given a trainable
 router, RL uses it; SFT doesn't" — all publishable.
+
+**Scheduling note (v3):** the existing Nemo handoff prioritized the WS2 rerun and Phase-3
+steering work before WS3. Starting WS3 after Qwen is stable should be an explicit reprioritization,
+not an assumption that the terminated Qwen node has spare capacity. Recommended launch sequence:
+separate authorization/budget → G-1/G0 only → G1 baseline → review the measured difficulty and
+cost envelope → authorize core arms.
